@@ -11,6 +11,7 @@ Cases, metrics, judges and run history for evaluating AI coding agents across fi
 - Store tokens per percent after a run: `node src/cli.mjs calibrate-budget <suite> <run-id> --five-hour-before <pct> --five-hour-after <pct> --weekly-before <pct> --weekly-after <pct>`
 - Compare two runs: `node src/cli.mjs compare <suite> <baseline-run> <candidate-run> [--aa <runA> --aa <runA2>] [--split heldout]`
 - Calibrate a judge against its labels: `node src/cli.mjs calibrate <judge>`
+- Visual review rounds (Kyle picks between two options, a judge learns his picks): `node src/cli.mjs visual-build`, `visual-notify <round>`, `visual-judge <round>`, `visual-pull <round>`, `visual-agree <round>`
 
 ## Test
 
@@ -25,6 +26,7 @@ Cases, metrics, judges and run history for evaluating AI coding agents across fi
 - A judge is binary, covers one dimension, runs on a pinned model different from the model under test, and gates nothing until `calibrate` marks it trusted.
 - Infra failures, timeouts and unknown verdicts carry a null value. Unknown is never zero.
 - A medium or large run needs a calibrated small run first. A run that passes its token allowance stops and is marked partial; partial runs stay out of comparisons.
+- The two options of a visual review pair differ on one axis, and the judge never sees how an option was made.
 - No inline comments in code. The why goes in the commit message.
 
 ## Ship
@@ -35,3 +37,4 @@ Cases, metrics, judges and run history for evaluating AI coding agents across fi
 
 - Design and data shapes: `docs/design.md`
 - Practices and their sources: `docs/sources.md`
+- Visual review loop, round shape and deploy: `docs/visual-review.md`

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "verdicts": ["a", "b", "both", "neither"],
+  "media": ["glyph", "icon-set", "illustration", "image", "component", "layout", "page", "document", "chart", "typography", "colour"],
+  "axes": {
+    "model": "Model that produced the option",
+    "effort": "Reasoning effort the model ran at",
+    "skill": "Design skill the agent read before it drew",
+    "colorToken": "Colour tokens the option may use",
+    "construction": "How the form is built: outline, solid or duotone",
+    "intent": "Design intent: the literal object or a metaphor for the idea"
+  },
+  "reasons": [
+    { "id": "clarity", "name": "Illustrative clarity", "question": "Does it read as the subject with the label hidden?" },
+    { "id": "metaphor", "name": "Metaphor fit", "question": "Is the object or idea it shows the right one for this subject?" },
+    { "id": "legibility", "name": "Small-size legibility", "question": "Does every part survive at 16 px?" },
+    { "id": "balance", "name": "Optical balance", "question": "Does it sit centred and carry even weight in its box?" },
+    { "id": "restraint", "name": "Restraint", "question": "Does every mark carry meaning?" },
+    { "id": "craft", "name": "Craft", "question": "Are the geometry, joins, radii and gaps consistent?" },
+    { "id": "family", "name": "Family fit", "question": "Does it belong beside the rest of the set?" },
+    { "id": "distinct", "name": "Distinctiveness", "question": "Could it be mistaken for another subject in the same product?" },
+    { "id": "colour", "name": "Colour use", "question": "Does colour carry meaning, or is it decoration?" }
+  ]
+}

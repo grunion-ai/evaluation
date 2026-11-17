@@ -12,6 +12,7 @@ import { replay } from './runners/replay.mjs';
 import { runTrial } from './runners/sandbox.mjs';
 import { validateCase, validateExperiment, validateSizes, validateSuite } from './schema.mjs';
 import { caseMeans, noiseFloor } from './stats.mjs';
+import { agreement as pairAgreement, buildData, loadRounds, loadTaxonomy, openTask, pairPrompt, parsePick, pending, validateRound } from './visual.mjs';
 
 const root = join(import.meta.dirname, '..');
 const { values: flags, positionals } = parseArgs({
@@ -50,6 +51,14 @@ const askClaude = async ({ prompt, model }) => {
   return out.stdout;
 };
 
+const review = () => JSON.parse(readFileSync(join(root, 'visual', 'site', 'review.json'), 'utf8'));
+const roundNamed = (id) => loadRounds(root).find((r) => r.id === id) ?? fail(`unknown round ${id}`);
+const liveVotes = async (round) => {
+  const res = await fetch(`${review().site}/api/votes?round=${round.id}`, { headers: { 'x-review-key': process.env.REVIEW_KEY ?? fail('REVIEW_KEY is not set') } });
+  if (!res.ok) fail(`votes ${res.status}`);
+  return (await res.json()).votes;
+};
+
 const calibration = (name) => {
   const judge = loadJudges(root)[name] ?? fail(`unknown judge ${name}`);
   const file = join(root, 'judges', `${name}.calibration.json`);
@@ -62,6 +71,7 @@ const commands = {
       ...loadSuites(root).flatMap((s) => [...validateSuite(s.suite), ...s.cases.flatMap((c) => validateCase(c.spec, s.suite))]),
       ...loadExperiments(root).flatMap(validateExperiment),
       ...validateSizes(sizes()),
+      ...loadRounds(root).flatMap((r) => validateRound(r, loadTaxonomy(root))),
     ];
     for (const e of errs) console.error(e);
     console.log(errs.length ? `${errs.length} errors` : 'ok');
@@ -175,6 +185,53 @@ const commands = {
     }
     writeFileSync(flags.budget, JSON.stringify({ ...all, [model]: { ...next, from: runId, at: stamp() } }, null, 2) + '\n');
     print({ model, tokens, ...next });
+  },
+
+  'visual-build'() {
+    const file = join(root, 'visual', 'site', 'public', 'data.json');
+    const rounds = loadRounds(root);
+    writeFileSync(file, JSON.stringify(buildData(rounds, loadTaxonomy(root))));
+    print({ file, rounds: rounds.map((r) => ({ id: r.id, pairs: r.pairs.length })) });
+  },
+
+  async 'visual-pull'([id]) {
+    const round = roundNamed(id);
+    const votes = (await liveVotes(round)).sort((a, b) => a.pair.localeCompare(b.pair));
+    const file = join(root, 'visual', 'rounds', round.id, 'votes.jsonl');
+    writeFileSync(file, votes.map((v) => JSON.stringify(v)).join('\n') + (votes.length ? '\n' : ''));
+    print({ file, votes: votes.length, pending: pending(round, votes) });
+  },
+
+  async 'visual-notify'([id]) {
+    const round = roundNamed(id);
+    const open = pending(round, await liveVotes(round));
+    const { netTask } = review();
+    const task = open ? await openTask({ ...netTask, token: process.env.WEAVE_NET_TOKEN ?? fail('WEAVE_NET_TOKEN is not set') }) : 'nothing to review';
+    print({ round: round.id, pending: open, task });
+  },
+
+  async 'visual-judge'([id, name = 'glyph-taste']) {
+    const round = roundNamed(id);
+    const judge = loadJudges(root)[name] ?? fail(`unknown judge ${name}`);
+    const rubric = readFileSync(join(root, 'judges', judge.rubric), 'utf8');
+    const rows = [];
+    for (const pair of round.pairs) {
+      const prompt = pairPrompt({ rubric, context: round.context, pair });
+      const picks = (await Promise.all(Array.from({ length: judge.votes }, () => askClaude({ prompt, model: judge.model })))).map(parsePick);
+      const pick = ['a', 'b', 'both', 'neither'].find((p) => picks.filter((x) => x === p).length * 2 > picks.length) ?? 'unknown';
+      rows.push({ pair: pair.id, pick, picks, judge: name, model: judge.model, at: stamp() });
+    }
+    const file = join(root, 'visual', 'rounds', round.id, 'judge.jsonl');
+    writeFileSync(file, rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
+    print({ file, picks: Object.fromEntries(rows.map((r) => [r.pair, r.pick])) });
+  },
+
+  'visual-agree'([id]) {
+    const round = roundNamed(id);
+    const rows = (name) => { const file = join(root, 'visual', 'rounds', round.id, name); return existsSync(file) ? readJsonl(file) : []; };
+    const out = pairAgreement(round, rows('votes.jsonl'), rows('judge.jsonl'));
+    print({ round: round.id, pairs: round.pairs.length, ...out });
+    process.exit(out.complete ? 0 : 1);
   },
 
   runs([suiteName]) {

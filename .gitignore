@@ -1,3 +1,6 @@
 node_modules/
 results/
 .DS_Store
+visual/site/public/data.json
+visual/site/.wrangler/
+visual/site/.dev.vars

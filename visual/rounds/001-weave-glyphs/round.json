@@ -1,0 +1,368 @@
+{
+  "id": "001-weave-glyphs",
+  "title": "Weave feature glyphs",
+  "medium": "glyph",
+  "context": "Weave is a web app where people and AI agents organize related records in workspaces. Each glyph sits beside a text label in the sidebar and in menus at 16 to 24 px, in light and dark themes, next to Lucide icons (24 px grid, 2 px stroke, round caps).",
+  "pairs": [
+    {
+      "id": "workspace",
+      "subject": "Workspace",
+      "objective": "Draw the glyph for Workspace: the top-level container for one domain of life or work. It holds spaces, and you switch between workspaces on a rail.",
+      "axis": "model",
+      "a": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/workspace.baseline.svg",
+        "intent": "A window frame with a narrow left rail of three dots beside a main pane, depicting the workspace switcher rail next to the content area."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-haiku-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/workspace.model-haiku.svg",
+        "intent": "A briefcase, the literal container for one domain of work, with its handle and a horizontal band that reads as a container people switch between."
+      }
+    },
+    {
+      "id": "relation",
+      "subject": "Relation",
+      "objective": "Draw the glyph for Relation: a field that links a record to records in another table.",
+      "axis": "model",
+      "a": {
+        "arm": {
+          "model": "claude-haiku-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/relation.model-haiku.svg",
+        "intent": "Two record cards joined by a bent connector line, the literal picture of one record linking to a record in another table."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/relation.baseline.svg",
+        "intent": "Two interlocked chain links, the universal symbol for a connection between one record and another."
+      }
+    },
+    {
+      "id": "rollup",
+      "subject": "Rollup",
+      "objective": "Draw the glyph for Rollup: a field that aggregates values across related records, such as a sum or a count.",
+      "axis": "model",
+      "a": {
+        "arm": {
+          "model": "claude-fable-5-2",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/rollup.model-fable.svg",
+        "intent": "Three record rows on the left converge through a rounded bracket into a single circle on the right, showing many related values collapsing into one aggregated value."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/rollup.baseline.svg",
+        "intent": "Four stacked row lines on the left funnel through two chevrons into a single bar on the right, showing many related values collapsing into one aggregate."
+      }
+    },
+    {
+      "id": "workflow",
+      "subject": "Workflow",
+      "objective": "Draw the glyph for Workflow: an automation: a trigger followed by steps that act on records.",
+      "axis": "model",
+      "a": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/workflow.baseline.svg",
+        "intent": "A trigger node at top left connected by an elbow line to a step node at bottom right, a minimal flow diagram of trigger then action."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-fable-5-2",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/workflow.model-fable.svg",
+        "intent": "A round trigger node at top left connects by an elbow line down to a square step node, the flowchart convention for a trigger followed by an action."
+      }
+    },
+    {
+      "id": "record",
+      "subject": "Record",
+      "objective": "Draw the glyph for Record: a single item in a table, opened as a detail card that lists its fields.",
+      "axis": "effort",
+      "a": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/record.baseline.svg",
+        "intent": "A portrait card with three rows, each a bullet dot and a value line, reading as a detail card listing a record’s fields."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "high",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/record.effort-high.svg",
+        "intent": "A rounded card with three rows, each a short label stub beside a longer value line, which reads as a record opened as a detail card listing its fields."
+      }
+    },
+    {
+      "id": "formula",
+      "subject": "Formula",
+      "objective": "Draw the glyph for Formula: a computed field whose value is calculated from other fields.",
+      "axis": "effort",
+      "a": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "high",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/formula.effort-high.svg",
+        "intent": "A sigma (summation) sign, the standard symbol for a calculated value, which reads as a field computed from other fields."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/formula.baseline.svg",
+        "intent": "The sigma summation glyph, the symbol of calculation, standing for a computed field."
+      }
+    },
+    {
+      "id": "space",
+      "subject": "Space",
+      "objective": "Draw the glyph for Space: a grouping inside a workspace that holds related tables and documents.",
+      "axis": "skill",
+      "a": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "impeccable",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/space.skill-impeccable.svg",
+        "intent": "A folder outline, the familiar container that holds related items, so it reads as a grouping of tables and documents."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/space.baseline.svg",
+        "intent": "A folder outline, the familiar container for related items, reading as a grouping inside a workspace."
+      }
+    },
+    {
+      "id": "board",
+      "subject": "Board view",
+      "objective": "Draw the glyph for Board view: a view that shows records as cards in columns, one column per state.",
+      "axis": "skill",
+      "a": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/board.baseline.svg",
+        "intent": "A framed panel holding three vertical bars of different heights, standing in for card stacks in three columns of a kanban board."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "impeccable",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/board.skill-impeccable.svg",
+        "intent": "Three side-by-side columns of different heights, the shape of a kanban board with one column per state."
+      }
+    },
+    {
+      "id": "mcp",
+      "subject": "MCP agent access",
+      "objective": "Draw the glyph for MCP agent access: AI agents reading and writing the workspace through the MCP interface.",
+      "axis": "intent",
+      "a": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "metaphor"
+        },
+        "file": "glyphs/mcp.intent-metaphor.svg",
+        "intent": "A central node with six short spokes radiating to the edges, depicting many agents reaching into one shared workspace to read and write it."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/mcp.baseline.svg",
+        "intent": "A robot head with an antenna, side ears and two eyes, representing the AI agents that connect to the workspace."
+      }
+    },
+    {
+      "id": "command-k",
+      "subject": "Command-K search",
+      "objective": "Draw the glyph for Command-K search: the search palette that jumps to any record in the workspace as you type.",
+      "axis": "intent",
+      "a": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/command-k.baseline.svg",
+        "intent": "A magnifying glass, the universal search symbol, representing the type-to-jump search palette."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "metaphor"
+        },
+        "file": "glyphs/command-k.intent-metaphor.svg",
+        "intent": "Two nodes joined by a straight diagonal line, with short dashes trailing behind each end, depicting a jump from where you are to any record in one move."
+      }
+    },
+    {
+      "id": "document",
+      "subject": "Document",
+      "objective": "Draw the glyph for Document: a rich-text page attached to a record or a space.",
+      "axis": "colorToken",
+      "a": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/document.baseline.svg",
+        "intent": "A page with a folded top-right corner and text lines, the standard rich-text document."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor + brand blue #2563eb",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/document.color-accent.svg",
+        "intent": "A folded-corner page outline with a short last line and one blue text line, the standard document glyph, with the blue line marking the written rich-text content that makes it a document."
+      }
+    },
+    {
+      "id": "table",
+      "subject": "Table",
+      "objective": "Draw the glyph for Table: a set of records of one kind with typed fields, shown as rows and columns.",
+      "axis": "construction",
+      "a": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "solid",
+          "intent": "literal"
+        },
+        "file": "glyphs/table.construction-solid.svg",
+        "intent": "A solid rounded block with a header row and a two-column grid of body rows cut out as negative space, which reads as a table of records with fields in rows and columns."
+      },
+      "b": {
+        "arm": {
+          "model": "claude-sonnet-5-5",
+          "effort": "default",
+          "skill": "none",
+          "colorToken": "currentColor",
+          "construction": "outline",
+          "intent": "literal"
+        },
+        "file": "glyphs/table.baseline.svg",
+        "intent": "A rounded grid with a header row, a second row line and a column divider, the standard rows-and-columns table."
+      }
+    }
+  ]
+}

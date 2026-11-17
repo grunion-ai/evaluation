@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Visual review</title>
+<style>
+:root {
+  --bg: #f6f5f1; --surface: #ffffff; --ink: #0c1b33; --muted: #5b6577; --line: #dedbd2;
+  --accent: #2563eb; --accent-ink: #ffffff; --ok: #1f7a4d; --radius: 10px;
+  --light-surface: #ffffff; --light-ink: #0c1b33; --dark-surface: #0f1626; --dark-ink: #e6e9ef;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0b101b; --surface: #131b2c; --ink: #e6e9ef; --muted: #97a1b3; --line: #26314a; --accent: #6f9bff; --accent-ink: #0b101b; --ok: #58c08a; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 20px 16px 64px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-size: 15px; font-weight: 600; margin: 0; }
+h1 span { color: var(--muted); font-weight: 400; }
+.count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.dots { display: flex; gap: 6px; margin: 14px 0 22px; flex-wrap: wrap; }
+.dots button { width: 22px; height: 6px; padding: 0; border: 0; border-radius: 3px; background: var(--line); cursor: pointer; }
+.dots button.voted { background: var(--ok); }
+.dots button.current { outline: 2px solid var(--accent); outline-offset: 2px; }
+.brief h2 { font-size: 30px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.01em; }
+.brief p { margin: 0; max-width: 68ch; }
+.brief .context { color: var(--muted); font-size: 13px; margin-top: 8px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 22px 0 16px; }
+.option { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.option.picked { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.option .tag { display: flex; justify-content: space-between; padding: 10px 14px; font-weight: 600; border-bottom: 1px solid var(--line); }
+.hero { display: grid; place-items: center; padding: 28px 0; }
+.hero .g { width: 128px; height: 128px; }
+.g { display: inline-block; flex: none; }
+.g svg { width: 100%; height: 100%; display: block; }
+.strip { display: grid; grid-template-columns: 1fr 1fr; }
+.swatch { padding: 12px 14px; display: grid; gap: 8px; }
+.swatch.light { background: var(--light-surface); color: var(--light-ink); }
+.swatch.dark { background: var(--dark-surface); color: var(--dark-ink); }
+.row { display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; overflow: hidden; }
+.row .g.s24 { width: 24px; height: 24px; }
+.row .g.s16 { width: 16px; height: 16px; }
+.row small { opacity: .55; margin-left: auto; font-variant-numeric: tabular-nums; }
+.verdicts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+button.v, button.primary, .chip { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; }
+button.v { padding: 14px 8px; font-weight: 600; }
+button.v kbd { display: block; font: 11px ui-monospace, monospace; color: var(--muted); font-weight: 400; }
+button.v[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.v[aria-pressed="true"] kbd { color: inherit; opacity: .8; }
+.after { margin-top: 22px; display: grid; gap: 18px; }
+.after h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 6px 12px; border-radius: 999px; font-size: 13px; }
+.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+textarea, input { width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+textarea { min-height: 64px; resize: vertical; }
+button.primary { padding: 12px 18px; font-weight: 600; background: var(--ink); color: var(--bg); border-color: var(--ink); justify-self: start; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; }
+td.diff { color: var(--accent); font-weight: 600; }
+.status { color: var(--muted); font-size: 13px; min-height: 20px; }
+.status.bad { color: #c2410c; }
+.gate { max-width: 420px; margin: 12vh auto; display: grid; gap: 12px; }
+.done h2 { font-size: 26px; margin: 8px 0; }
+[hidden] { display: none !important; }
+@media (max-width: 640px) {
+  .pair { gap: 10px; }
+  .hero { padding: 18px 0; } .hero .g { width: 84px; height: 84px; }
+  .strip { grid-template-columns: 1fr; }
+  .verdicts { grid-template-columns: 1fr 1fr; }
+  .brief h2 { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <section class="gate" id="gate" hidden>
+    <h1>Visual review</h1>
+    <label for="key">Review key</label>
+    <input id="key" type="password" autocomplete="current-password">
+    <button class="primary" id="unlock">Open review</button>
+    <div class="status bad" id="gate-status"></div>
+  </section>
+
+  <section id="review" hidden>
+    <header>
+      <h1>Visual review <span id="round-title"></span></h1>
+      <div class="count" id="count"></div>
+    </header>
+    <div class="dots" id="dots"></div>
+
+    <div id="card">
+      <div class="brief">
+        <h2 id="subject"></h2>
+        <p id="objective"></p>
+        <p class="context" id="context"></p>
+      </div>
+      <div class="pair" id="pair"></div>
+      <div class="verdicts" id="verdicts"></div>
+      <div class="status" id="status"></div>
+      <div class="after" id="after" hidden>
+        <div>
+          <h3>Reasons</h3>
+          <div class="chips" id="chips"></div>
+        </div>
+        <div>
+          <h3>Note</h3>
+          <textarea id="note" placeholder="The detail that decided it"></textarea>
+        </div>
+        <div>
+          <h3>Production settings</h3>
+          <table id="reveal"></table>
+        </div>
+        <button class="primary" id="next">Save and next</button>
+      </div>
+    </div>
+
+    <div class="done" id="done" hidden>
+      <h2>Round reviewed</h2>
+      <p id="done-line"></p>
+      <table id="summary"></table>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids); return n; };
+const LABEL = { a: 'A', b: 'B', both: 'Both', neither: 'Neither' };
+const KEYS = { a: '1', b: '2', both: '3', neither: '4' };
+const stored = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const state = { data: null, round: null, votes: new Map(), index: 0, key: stored('review-key') ?? '', draft: null };
+
+const api = async (path, init = {}) => {
+  const res = await fetch(path, { ...init, headers: { 'content-type': 'application/json', 'x-review-key': state.key } });
+  if (res.status === 401) throw new Error('key');
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+};
+
+const glyph = (svg, cls = '') => { const s = el('span', { className: `g ${cls}` }); s.innerHTML = svg; return s; };
+const specimen = (theme, svg, label) => el('div', { className: `swatch ${theme}` },
+  el('div', { className: 'row' }, glyph(svg, 's24'), label, el('small', {}, '24')),
+  el('div', { className: 'row' }, glyph(svg, 's16'), label, el('small', {}, '16')));
+const option = (side, pair, picked) => el('div', { className: `option${picked ? ' picked' : ''}` },
+  el('div', { className: 'tag' }, LABEL[side]),
+  el('div', { className: 'hero' }, glyph(pair[side].svg)),
+  el('div', { className: 'strip' }, specimen('light', pair[side].svg, pair.subject), specimen('dark', pair[side].svg, pair.subject)));
+
+const firstOpen = () => { const i = state.round.pairs.findIndex((p) => !state.votes.has(p.id)); return i < 0 ? state.round.pairs.length : i; };
+
+const render = () => {
+  const { pairs } = state.round;
+  const finished = state.index >= pairs.length;
+  $('round-title').textContent = `· ${state.round.title}`;
+  $('count').textContent = finished ? `${state.votes.size} of ${pairs.length} reviewed` : `${state.index + 1} of ${pairs.length}`;
+  $('dots').replaceChildren(...pairs.map((p, i) => el('button', {
+    className: `${state.votes.has(p.id) ? 'voted' : ''} ${i === state.index ? 'current' : ''}`,
+    title: p.subject, ariaLabel: p.subject, onclick: () => go(i),
+  })));
+  $('card').hidden = finished;
+  $('done').hidden = !finished;
+  if (finished) return renderDone();
+  const pair = pairs[state.index];
+  const draft = state.draft;
+  const picked = (side) => draft.verdict === side || draft.verdict === 'both';
+  $('subject').textContent = pair.subject;
+  $('objective').textContent = pair.objective;
+  $('context').textContent = state.round.context;
+  $('pair').replaceChildren(option('a', pair, picked('a')), option('b', pair, picked('b')));
+  $('verdicts').replaceChildren(...state.data.verdicts.map((v) => el('button', {
+    className: 'v', ariaPressed: String(draft.verdict === v), onclick: () => choose(v),
+  }, LABEL[v], el('kbd', {}, KEYS[v]))));
+  $('after').hidden = !draft.verdict;
+  if (!draft.verdict) return;
+  $('chips').replaceChildren(...state.data.reasons.map((r) => el('button', {
+    className: 'chip', title: r.question, ariaPressed: String(draft.reasons.includes(r.id)),
+    onclick: () => { draft.reasons = draft.reasons.includes(r.id) ? draft.reasons.filter((x) => x !== r.id) : [...draft.reasons, r.id]; render(); },
+  }, r.name)));
+  if ($('note').value !== draft.note) $('note').value = draft.note;
+  const axes = Object.keys(state.data.axes);
+  $('reveal').replaceChildren(
+    el('tr', {}, el('th', {}, ''), el('th', {}, 'A'), el('th', {}, 'B')),
+    ...axes.map((k) => el('tr', {}, el('th', { title: state.data.axes[k] }, k),
+      el('td', { className: k === pair.axis ? 'diff' : '' }, pair.a.arm[k] ?? ''),
+      el('td', { className: k === pair.axis ? 'diff' : '' }, pair.b.arm[k] ?? ''))),
+    el('tr', {}, el('th', {}, 'stated intent'), el('td', {}, pair.a.intent), el('td', {}, pair.b.intent)));
+};
+
+const renderDone = () => {
+  const { pairs } = state.round;
+  $('done-line').textContent = `${state.votes.size} of ${pairs.length} pairs carry your pick. Select a bar above to change one.`;
+  $('summary').replaceChildren(
+    el('tr', {}, el('th', {}, 'Subject'), el('th', {}, 'Varied'), el('th', {}, 'Pick'), el('th', {}, 'Winning setting'), el('th', {}, 'Reasons')),
+    ...pairs.map((p) => {
+      const v = state.votes.get(p.id);
+      const win = !v ? '' : v.verdict === 'a' || v.verdict === 'b' ? p[v.verdict].arm[p.axis] : LABEL[v.verdict];
+      return el('tr', {}, el('td', {}, p.subject), el('td', {}, p.axis), el('td', {}, v ? LABEL[v.verdict] : 'open'), el('td', {}, win), el('td', {}, v ? v.reasons.join(', ') : ''));
+    }));
+};
+
+const go = (i) => {
+  state.index = i;
+  const pair = state.round.pairs[i];
+  const v = pair && state.votes.get(pair.id);
+  state.draft = { verdict: v?.verdict ?? null, reasons: [...(v?.reasons ?? [])], note: v?.note ?? '' };
+  $('status').textContent = '';
+  $('status').className = 'status';
+  render();
+  scrollTo({ top: 0 });
+};
+
+const save = async () => {
+  const pair = state.round.pairs[state.index];
+  const body = { round: state.round.id, pair: pair.id, verdict: state.draft.verdict, reasons: state.draft.reasons, note: $('note').value.trim() };
+  try {
+    const { vote } = await api('/api/votes', { method: 'PUT', body: JSON.stringify(body) });
+    state.votes.set(pair.id, vote);
+    $('status').textContent = 'Saved';
+    $('status').className = 'status';
+    return true;
+  } catch (e) {
+    $('status').textContent = e.message === 'key' ? 'Review key refused. Reload and enter it again.' : 'Not saved. Check the connection and pick again.';
+    $('status').className = 'status bad';
+    return false;
+  }
+};
+
+const choose = async (v) => { state.draft.verdict = v; state.draft.note = $('note').value; render(); await save(); render(); };
+$('note').oninput = () => { state.draft.note = $('note').value; };
+$('next').onclick = async () => { if (await save()) go(firstOpen() < state.round.pairs.length ? firstOpen() : state.index + 1); };
+
+addEventListener('keydown', (e) => {
+  if ($('review').hidden || e.target.matches('textarea, input') || e.metaKey || e.ctrlKey) return;
+  const v = { 1: 'a', 2: 'b', 3: 'both', 4: 'neither', a: 'a', b: 'b' }[e.key.toLowerCase()];
+  if (v && state.index < state.round.pairs.length) choose(v);
+  if (e.key === 'Enter' && state.draft?.verdict) $('next').click();
+  if (e.key === 'ArrowRight') go(Math.min(state.index + 1, state.round.pairs.length));
+  if (e.key === 'ArrowLeft') go(Math.max(state.index - 1, 0));
+});
+
+const open = async () => {
+  const wanted = new URLSearchParams(location.search).get('round');
+  const rounds = state.data.rounds;
+  for (const r of [...rounds].reverse()) {
+    const { votes } = await api(`/api/votes?round=${r.id}`);
+    r.votes = new Map(votes.map((v) => [v.pair, v]));
+  }
+  state.round = rounds.find((r) => r.id === wanted) ?? rounds.find((r) => r.votes.size < r.pairs.length) ?? rounds.at(-1);
+  state.votes = state.round.votes;
+  $('gate').hidden = true;
+  $('review').hidden = false;
+  go(firstOpen());
+};
+
+const unlock = async () => {
+  try { await open(); try { localStorage.setItem('review-key', state.key); } catch {} }
+  catch (e) {
+    $('review').hidden = true;
+    $('gate').hidden = false;
+    $('gate-status').textContent = e.message === 'key' && state.key ? 'That key was refused.' : e.message === 'key' ? '' : 'The review service did not answer.';
+  }
+};
+$('unlock').onclick = () => { state.key = $('key').value.trim(); unlock(); };
+$('key').onkeydown = (e) => { if (e.key === 'Enter') $('unlock').click(); };
+
+fetch('data.json').then((r) => r.json()).then((data) => { state.data = data; unlock(); });
+</script>
+</body>
+</html>

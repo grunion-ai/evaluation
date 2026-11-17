@@ -48,6 +48,7 @@ const newRunId = (label) => `${stamp().replace(/[:.]/g, '-')}-${label}`;
 const askClaude = async ({ prompt, model }) => {
   const out = spawnSync('claude', ['-p', '--model', model], { input: prompt, encoding: 'utf8' });
   if (out.error) throw out.error;
+  if (out.status !== 0) throw new Error(`claude -p exited ${out.status}: ${out.stdout.trim().slice(0, 200)}`);
   return out.stdout;
 };
 

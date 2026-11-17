@@ -1,0 +1,1 @@
+Complete `index.html`: a sign-up form with a name field and an email field, both required, and a submit button that reads "Create account". Use native HTML validation; no JavaScript and no external files.

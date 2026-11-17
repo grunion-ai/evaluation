@@ -1,0 +1,1 @@
+Build `page.html`, a status page for three services (API, Dashboard, Webhooks) with the API degraded and the others operational. Use only the colours in `tokens.json`. One self-contained file, inline CSS, no JavaScript.

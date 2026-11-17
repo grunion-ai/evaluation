@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "name": "backend",
+  "kind": "capability",
+  "metrics": [
+    { "name": "hidden_tests", "kind": "code", "scorer": "command", "direction": "up", "unit": "rate", "role": "target" },
+    { "name": "existing_tests", "kind": "code", "scorer": "command", "direction": "up", "unit": "rate", "role": "guard" },
+    { "name": "duration_seconds", "kind": "code", "scorer": "duration", "direction": "down", "unit": "seconds", "role": "guard" }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "harness-sessions",
+  "kind": "regression",
+  "metrics": [
+    { "name": "completion", "kind": "code", "scorer": "field", "field": "completed", "direction": "up", "unit": "rate", "role": "target" },
+    { "name": "active_minutes", "kind": "code", "scorer": "field", "field": "activeMinutes", "direction": "down", "unit": "minutes", "role": "guard" },
+    { "name": "cost_usd", "kind": "code", "scorer": "field", "field": "costUsd", "direction": "down", "unit": "usd", "role": "guard" },
+    { "name": "tool_calls", "kind": "code", "scorer": "field", "field": "toolCalls", "direction": "down", "unit": "count", "role": "diagnostic" }
+  ]
+}

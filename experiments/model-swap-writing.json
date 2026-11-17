@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "name": "model-swap-writing",
+  "suite": "writing",
+  "axis": "model",
+  "baseline": { "model": "claude-sonnet-5-5", "config": null },
+  "candidate": { "model": "claude-fable-5-2", "config": null }
+}

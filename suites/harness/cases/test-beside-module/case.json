@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "test-beside-module",
+  "mode": "sandbox",
+  "split": "train",
+  "trials": 3,
+  "timeoutSeconds": 600,
+  "source": "Seed case: agent skips a standing repo instruction while completing the task",
+  "checks": [
+    { "metric": "completion", "command": "node checks/completion.mjs" },
+    { "metric": "instruction_followed", "command": "node checks/instruction.mjs" }
+  ]
+}

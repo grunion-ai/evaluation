@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "status-page",
+  "mode": "sandbox",
+  "split": "train",
+  "trials": 3,
+  "timeoutSeconds": 600,
+  "source": "Seed case: generated pages invent colours outside the design tokens",
+  "checks": [
+    { "metric": "token_colours", "command": "node checks/tokens.mjs" },
+    { "metric": "visual_hierarchy", "judge": "visual-hierarchy", "output": "page.html" }
+  ]
+}

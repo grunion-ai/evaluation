@@ -1,0 +1,13 @@
+{
+  "name": "evaluation",
+  "version": "0.1.0",
+  "description": "Cases, metrics, judges and run history for evaluating AI coding agents",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "bin": { "evaluation": "src/cli.mjs" },
+  "scripts": {
+    "test": "node --test",
+    "validate": "node src/cli.mjs validate"
+  }
+}

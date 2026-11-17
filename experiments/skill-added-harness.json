@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "name": "skill-added-harness",
+  "suite": "harness",
+  "axis": "config",
+  "baseline": { "model": "claude-sonnet-5-5", "config": "configs/baseline" },
+  "candidate": { "model": "claude-sonnet-5-5", "config": "configs/candidate" }
+}

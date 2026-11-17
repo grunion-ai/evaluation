@@ -1,0 +1,6 @@
+- Product: Ledgerline
+- Version: 4.2.0, released 3 March
+- Change: CSV exports now finish in about 4 seconds for 100,000 rows; they took about 50 seconds before
+- Cause: exports stream rows instead of building the file in memory
+- Action for customers: none
+- Known limit: exports over 1,000,000 rows still run as a background job

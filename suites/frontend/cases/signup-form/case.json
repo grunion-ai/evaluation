@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "signup-form",
+  "mode": "sandbox",
+  "split": "train",
+  "trials": 3,
+  "timeoutSeconds": 600,
+  "source": "Seed case: generated forms ship inputs with no label and no required email validation",
+  "checks": [
+    { "metric": "behaviour", "command": "node checks/behaviour.mjs" },
+    { "metric": "labels", "command": "node checks/labels.mjs" }
+  ]
+}

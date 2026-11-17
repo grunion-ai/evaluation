@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "paginate-last-page",
+  "mode": "sandbox",
+  "split": "train",
+  "trials": 3,
+  "timeoutSeconds": 600,
+  "source": "Seed case: off-by-one in page count drops the final partial page",
+  "checks": [
+    { "metric": "hidden_tests", "command": "node checks/hidden.mjs" },
+    { "metric": "existing_tests", "command": "node --test test/" }
+  ]
+}

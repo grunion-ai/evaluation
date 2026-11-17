@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Service status</title>
+<style>
+body { margin: 0; padding: 48px 24px; background: #faf9f6; color: #1c1b19; font: 16px/1.5 system-ui, sans-serif; }
+main { max-width: 560px; margin: 0 auto; }
+h1 { font-size: 28px; margin: 0 0 4px; }
+.summary { color: #9a5b00; font-weight: 600; margin: 0 0 32px; }
+ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid #dedbd2; }
+li { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #dedbd2; }
+.ok { color: #2f6b3a; }
+.warn { color: #9a5b00; font-weight: 600; }
+footer { margin-top: 24px; color: #6b6860; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Service status</h1>
+<p class="summary">API degraded</p>
+<ul>
+<li><span>API</span><span class="warn">Degraded</span></li>
+<li><span>Dashboard</span><span class="ok">Operational</span></li>
+<li><span>Webhooks</span><span class="ok">Operational</span></li>
+</ul>
+<footer>Checked every minute</footer>
+</main>
+</body>
+</html>

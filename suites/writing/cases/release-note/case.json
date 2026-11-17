@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "release-note",
+  "mode": "sandbox",
+  "split": "train",
+  "trials": 3,
+  "timeoutSeconds": 300,
+  "source": "Seed case: release notes open on process and drop the version or the date",
+  "checks": [
+    { "metric": "facts_kept", "command": "node checks/facts.mjs" },
+    { "metric": "leads_with_change", "judge": "leads-with-change", "output": "release-note.md" },
+    { "metric": "plain_words", "judge": "plain-words", "output": "release-note.md" }
+  ]
+}

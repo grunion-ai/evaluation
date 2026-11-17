@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "writing",
+  "kind": "capability",
+  "metrics": [
+    { "name": "leads_with_change", "kind": "judge", "judge": "leads-with-change", "direction": "up", "unit": "rate", "role": "target" },
+    { "name": "plain_words", "kind": "judge", "judge": "plain-words", "direction": "up", "unit": "rate", "role": "guard" },
+    { "name": "facts_kept", "kind": "code", "scorer": "command", "direction": "up", "unit": "rate", "role": "guard" },
+    { "name": "duration_seconds", "kind": "code", "scorer": "duration", "direction": "down", "unit": "seconds", "role": "diagnostic" }
+  ]
+}

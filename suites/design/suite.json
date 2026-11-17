@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "name": "design",
+  "kind": "capability",
+  "metrics": [
+    { "name": "visual_hierarchy", "kind": "judge", "judge": "visual-hierarchy", "direction": "up", "unit": "rate", "role": "target" },
+    { "name": "token_colours", "kind": "code", "scorer": "command", "direction": "up", "unit": "rate", "role": "guard" },
+    { "name": "duration_seconds", "kind": "code", "scorer": "duration", "direction": "down", "unit": "seconds", "role": "diagnostic" }
+  ]
+}

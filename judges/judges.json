@@ -3,6 +3,7 @@
   "judges": {
     "leads-with-change": { "model": "claude-opus-5-5", "votes": 3, "rubric": "leads-with-change.md", "labels": "leads-with-change.labels.jsonl" },
     "plain-words": { "model": "claude-opus-5-5", "votes": 3, "rubric": "plain-words.md", "labels": "plain-words.labels.jsonl" },
-    "visual-hierarchy": { "model": "claude-opus-5-5", "votes": 3, "rubric": "visual-hierarchy.md", "labels": "visual-hierarchy.labels.jsonl" }
+    "visual-hierarchy": { "model": "claude-opus-5-5", "votes": 3, "rubric": "visual-hierarchy.md", "labels": "visual-hierarchy.labels.jsonl" },
+    "sentence-title": { "model": "claude-opus-5-5", "votes": 3, "rubric": "sentence-title.md", "labels": "sentence-title.labels.jsonl" }
   }
 }

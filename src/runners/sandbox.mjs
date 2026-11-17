@@ -14,12 +14,21 @@ const sh = (command, { cwd, env, input, timeoutMs }) =>
     child.stdin.end(input ?? '');
   });
 
+export const parseAgentOutput = (stdout) => {
+  let doc;
+  try { doc = JSON.parse(stdout); } catch { return { transcript: stdout }; }
+  if (doc.is_error) throw new Error(String(doc.result));
+  const u = doc.usage;
+  const tokens = u && (u.input_tokens ?? 0) + (u.output_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
+  return { transcript: doc.result ?? '', tokens, costUsd: doc.total_cost_usd };
+};
+
 export const cliAgent = async ({ prompt, cwd, home, arm, timeoutMs }) => {
   if (arm.config) cpSync(arm.config, join(home, '.claude'), { recursive: true });
-  const command = (arm.agent ?? 'claude -p --model {model}').replace('{model}', arm.model ?? '');
+  const command = (arm.agent ?? 'claude -p --model {model} --output-format json').replace('{model}', arm.model ?? '');
   const { code, stdout, timedOut } = await sh(command, { cwd, env: { ...process.env, HOME: home }, input: prompt, timeoutMs });
   if (code !== 0 && !timedOut) throw new Error(`agent command exited ${code}: ${stdout.slice(0, 200)}`);
-  return { transcript: stdout, timedOut };
+  return timedOut ? { transcript: stdout, timedOut } : parseAgentOutput(stdout);
 };
 
 export const runTrial = async ({ caseDir, spec, trial, arm, agent = cliAgent }) => {
@@ -31,7 +40,7 @@ export const runTrial = async ({ caseDir, spec, trial, arm, agent = cliAgent }) 
   else mkdirSync(cwd);
 
   const row = (metric, value, status) => ({ case: spec.id, metric, trial, value, status, split: spec.split });
-  const metrics = [...spec.checks.map((c) => c.metric), 'duration_seconds'];
+  const metrics = [...spec.checks.map((c) => c.metric), 'duration_seconds', 'tokens', 'cost_usd'];
   const failed = (status, extra = {}) => ({ rows: metrics.map((m) => row(m, null, status)), transcript: '', workDir: cwd, ...extra });
 
   const started = Date.now();
@@ -52,5 +61,8 @@ export const runTrial = async ({ caseDir, spec, trial, arm, agent = cliAgent }) 
     rows.push(row(check.metric, code === 0 ? 1 : 0, 'ok'));
   }
   rows.push(row('duration_seconds', seconds, 'ok'));
+  const reported = (metric, value) => rows.push(typeof value === 'number' ? row(metric, value, 'ok') : row(metric, null, 'unknown'));
+  reported('tokens', out.tokens);
+  reported('cost_usd', out.costUsd);
   return { rows, transcript: out.transcript, workDir: cwd };
 };

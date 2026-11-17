@@ -25,3 +25,5 @@ export const compareRuns = ({ suite, baseline, candidate, floors = {}, split, un
   const guards = metrics.filter((m) => m.role === 'guard').map((m) => m.verdict);
   return { metrics, gate: gate({ target: target ? target.verdict : 'unknown', guards }) };
 };
+
+export const comparable = (run) => (run.header.partial ? `run ${run.header.runId} is partial and stays out of comparisons` : null);

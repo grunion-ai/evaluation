@@ -70,3 +70,22 @@ test('an agent that throws is an infra failure and a timeout is a timeout', asyn
   const slow = await runTrial({ caseDir: makeCase(), spec, trial: 1, arm: {}, agent: async () => ({ transcript: '', timedOut: true }) });
   assert.ok(slow.rows.every((r) => r.status === 'timeout'));
 });
+
+test('runTrial records tokens and cost when the agent reports them, unknown when it does not', async () => {
+  const solve = async ({ cwd }) => { writeFileSync(join(cwd, 'answer.txt'), '42'); return { transcript: '', tokens: 1234, costUsd: 0.05 }; };
+  const reported = await runTrial({ caseDir: makeCase(), spec, trial: 1, arm: {}, agent: solve });
+  assert.equal(reported.rows.find((r) => r.metric === 'tokens').value, 1234);
+  assert.equal(reported.rows.find((r) => r.metric === 'cost_usd').value, 0.05);
+  const silent = await runTrial({ caseDir: makeCase(), spec, trial: 1, arm: {}, agent: async () => ({ transcript: '' }) });
+  const row = silent.rows.find((r) => r.metric === 'tokens');
+  assert.deepEqual({ value: row.value, status: row.status }, { value: null, status: 'unknown' });
+});
+
+test('parseAgentOutput reads the result, token total and cost from the CLI JSON', async () => {
+  const { parseAgentOutput } = await import('../src/runners/sandbox.mjs');
+  const out = parseAgentOutput(JSON.stringify({ result: 'done', is_error: false, total_cost_usd: 0.2, usage: { input_tokens: 10, output_tokens: 20, cache_creation_input_tokens: 30, cache_read_input_tokens: 40 } }));
+  assert.deepEqual(out, { transcript: 'done', tokens: 100, costUsd: 0.2 });
+  assert.throws(() => parseAgentOutput(JSON.stringify({ result: 'Failed to authenticate', is_error: true })), /Failed to authenticate/);
+  assert.deepEqual(parseAgentOutput('plain text'), { transcript: 'plain text' });
+  assert.equal(parseAgentOutput(JSON.stringify({ result: 'done' })).tokens, undefined);
+});

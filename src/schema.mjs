@@ -56,3 +56,15 @@ export const validateExperiment = (e) => {
   }
   return errs;
 };
+
+export const validateSizes = (doc) => {
+  const errs = [];
+  required(errs, 'sizes', doc, ['schemaVersion', 'sizes']);
+  for (const [name, size] of Object.entries(doc.sizes ?? {})) {
+    const where = `size ${name}`;
+    required(errs, where, size, ['cases', 'trials', 'heldout', 'caps']);
+    if (!(size.trials >= 3)) errs.push(`${where}: trials must be 3 or more`);
+    required(errs, where, size.caps ?? {}, ['fiveHourPct', 'weeklyPct']);
+  }
+  return errs;
+};

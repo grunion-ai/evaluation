@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "sizes": {
+    "small": { "cases": 5, "trials": 3, "heldout": false, "caps": { "fiveHourPct": 10, "weeklyPct": 1 } },
+    "medium": { "cases": 20, "trials": 3, "heldout": false, "caps": { "fiveHourPct": 40, "weeklyPct": 4 } },
+    "large": { "cases": 50, "trials": 5, "heldout": true, "caps": { "fiveHourPct": 80, "weeklyPct": 15 } }
+  }
+}

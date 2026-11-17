@@ -6,6 +6,8 @@
     { "name": "leads_with_change", "kind": "judge", "judge": "leads-with-change", "direction": "up", "unit": "rate", "role": "target" },
     { "name": "plain_words", "kind": "judge", "judge": "plain-words", "direction": "up", "unit": "rate", "role": "guard" },
     { "name": "facts_kept", "kind": "code", "scorer": "command", "direction": "up", "unit": "rate", "role": "guard" },
-    { "name": "duration_seconds", "kind": "code", "scorer": "duration", "direction": "down", "unit": "seconds", "role": "diagnostic" }
+    { "name": "duration_seconds", "kind": "code", "scorer": "duration", "direction": "down", "unit": "seconds", "role": "diagnostic" },
+    { "name": "tokens", "kind": "code", "scorer": "usage", "direction": "down", "unit": "tokens", "role": "diagnostic" },
+    { "name": "cost_usd", "kind": "code", "scorer": "usage", "direction": "down", "unit": "usd", "role": "diagnostic" }
   ]
 }

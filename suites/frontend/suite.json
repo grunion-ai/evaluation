@@ -5,6 +5,8 @@
   "metrics": [
     { "name": "behaviour", "kind": "code", "scorer": "command", "direction": "up", "unit": "rate", "role": "target" },
     { "name": "labels", "kind": "code", "scorer": "command", "direction": "up", "unit": "rate", "role": "guard" },
-    { "name": "duration_seconds", "kind": "code", "scorer": "duration", "direction": "down", "unit": "seconds", "role": "guard" }
+    { "name": "duration_seconds", "kind": "code", "scorer": "duration", "direction": "down", "unit": "seconds", "role": "guard" },
+    { "name": "tokens", "kind": "code", "scorer": "usage", "direction": "down", "unit": "tokens", "role": "diagnostic" },
+    { "name": "cost_usd", "kind": "code", "scorer": "usage", "direction": "down", "unit": "usd", "role": "diagnostic" }
   ]
 }

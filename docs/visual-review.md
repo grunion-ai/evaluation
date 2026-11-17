@@ -29,4 +29,4 @@ Kyle picks between two options made for the same objective. His picks train `gly
 
 ## Local run
 
-From `visual/site`, write `REVIEW_KEY=<any test value>` to `.dev.vars` and run `npx wrangler pages dev public`. Votes land in a local store.
+From `visual/site`, write `REVIEW_KEY=<any test value>` to `.dev.vars` and run `npx wrangler pages dev public --kv VOTES`. Votes land in a local store.

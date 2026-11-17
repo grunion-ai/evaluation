@@ -109,6 +109,22 @@ The noise floor is the larger absolute end of that interval taken between two ru
 
 A judge metric whose judge is untrusted takes the diagnostic role. The gate then reads the target and guard verdicts as the README describes. A suite whose target is an untrusted judge metric has no target, so its gate is `hold` or `revise`. `compare` exits 1 on `revise`.
 
+## Sizes and the budget guard
+
+Each size in `sizes.json` sets its case count, trial count and percent cap per usage window:
+
+```json
+"small": { "cases": 5, "trials": 3, "heldout": false, "caps": { "fiveHourPct": 10, "weeklyPct": 1 } }
+```
+
+`run` sorts the suite's sandbox cases by id, drops `heldout` cases unless the size sets `heldout`, keeps the first `cases` and runs each for the size's `trials`.
+
+Each trial records `tokens` (the input, output, cache-creation and cache-read counts in `usage`) and `cost_usd` (`total_cost_usd`) from the agent CLI's JSON output. Non-JSON output leaves both `unknown`, a missing `usage` block leaves `tokens` `unknown`, and a missing `total_cost_usd` leaves `cost_usd` `unknown`.
+
+The estimate is the mean of the `ok` `tokens` rows in the suite's past runs, times the planned trials. `calibrate-budget` divides a finished run's `tokens` by the points each window moved between the before and after percentages, and stores tokens per percent for that run's model in `budget/calibration.json`. A window that did not move keeps its earlier rate or stays unset. `calibrate-budget` refuses a partial run. The guard divides the estimate by each stored rate and refuses the run when that share passes its cap or takes the window past 90% used. The token allowance is the smaller of rate times cap across the two windows; a run that spends past it stops before its next trial and sets `partial`.
+
+The run header adds `size`, `partial`, `tokens` (spent), `estimate` and `uncalibrated` (true when the guard had no estimate or stored rate).
+
 ## Adding a case
 
 1. Write `checks/`, and a `fixture/` that fails at least one check.

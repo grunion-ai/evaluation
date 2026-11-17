@@ -31,6 +31,18 @@ A judge metric asks a model to grade one output against a binary rubric that cov
 
 Each run writes one append-only JSONL file under `history/<suite>/`. The first line is the run header, with a fingerprint of the arm's settings; every later line is one result.
 
+## Run sizes
+
+`run --size small|medium|large` picks how many cases and trials a sandbox run uses, from `sizes.json`; the default is `small`. Each size also caps the run's share of your plan's 5-hour and weekly usage windows.
+
+| Size | Cases | Trials per case | Held-out cases | 5-hour cap | Weekly cap |
+| --- | --- | --- | --- | --- | --- |
+| small | 5 | 3 | no | 10% | 1% |
+| medium | 20 | 3 | no | 40% | 4% |
+| large | 50 | 5 | yes | 80% | 15% |
+
+Before any trial starts, a budget guard estimates the run's tokens from past runs of the suite. It refuses a run that would exceed a cap or push either window past 90% used. The runner cannot read plan limits itself, so you pass current usage with `--five-hour-used` and `--weekly-used`. Only a small run may start with no estimate or no `calibrate-budget` measurement. A run that passes the token allowance its caps imply stops before its next trial and is marked partial; `compare` refuses partial runs.
+
 ## Comparison and the gate
 
 `compare` pairs the baseline and candidate runs by case and takes a 95% interval on the mean difference from a t distribution. Pass two runs of the same arm with `--aa`; the larger absolute end of the interval on their paired difference becomes the noise floor.
@@ -46,7 +58,8 @@ Node 22 or later, no dependencies.
 ```sh
 node src/cli.mjs validate
 node src/cli.mjs replay harness-sessions <sessions.jsonl> --run-id <id> --arm <label>
-node src/cli.mjs run <experiment>
+node src/cli.mjs run <experiment> --size small --five-hour-used <pct> --weekly-used <pct>
+node src/cli.mjs calibrate-budget <suite> <run-id> --five-hour-before <pct> --five-hour-after <pct> --weekly-before <pct> --weekly-after <pct>
 node src/cli.mjs compare <suite> <baseline-run> <candidate-run> [--aa <runA> --aa <runA2>] [--split heldout]
 node src/cli.mjs calibrate <judge>
 npm test
@@ -57,6 +70,8 @@ npm test
 The test suite covers the code checks, the replay path, comparison and the gate. Live sandbox runs and live judge calls shell out to the `claude` CLI and need `ANTHROPIC_API_KEY`; they have not been exercised end to end yet.
 
 Every judge ships with an empty labels file, so every judge metric is diagnostic until someone labels examples and runs `calibrate`. Until then the writing and design suites, whose targets are judge metrics, reach `hold` at best.
+
+The caps in `sizes.json` are starting values that no measured run has confirmed, and `budget/calibration.json` stays empty until a small run is calibrated.
 
 Each of the five sandbox suites has one seed case, and `docs/sources.md` lists the evaluation practices the repo has not adopted yet.
 

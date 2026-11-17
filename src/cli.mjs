@@ -3,13 +3,14 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { compareRuns } from './compare.mjs';
+import { allowance, estimateTokens, guard, perTrialTokens, selectCases, tokensPerPercent } from './budget.mjs';
+import { comparable, compareRuns } from './compare.mjs';
 import { appendRun, readRun, listRuns } from './history.mjs';
 import { agreement, runJudge, trusted } from './judge.mjs';
 import { loadExperiments, loadJudges, loadSuites, readJsonl } from './repo.mjs';
 import { replay } from './runners/replay.mjs';
 import { runTrial } from './runners/sandbox.mjs';
-import { validateCase, validateExperiment, validateSuite } from './schema.mjs';
+import { validateCase, validateExperiment, validateSizes, validateSuite } from './schema.mjs';
 import { caseMeans, noiseFloor } from './stats.mjs';
 
 const root = join(import.meta.dirname, '..');
@@ -23,12 +24,23 @@ const { values: flags, positionals } = parseArgs({
     split: { type: 'string' },
     aa: { type: 'string', multiple: true },
     case: { type: 'string' },
+    size: { type: 'string', default: 'small' },
+    budget: { type: 'string', default: join(root, 'budget', 'calibration.json') },
+    'five-hour-used': { type: 'string' },
+    'weekly-used': { type: 'string' },
+    'five-hour-before': { type: 'string' },
+    'five-hour-after': { type: 'string' },
+    'weekly-before': { type: 'string' },
+    'weekly-after': { type: 'string' },
   },
 });
 const [command, ...args] = positionals;
 const print = (value) => console.log(JSON.stringify(value, null, 2));
 const fail = (message) => { console.error(message); process.exit(2); };
 const suiteNamed = (name) => loadSuites(root).find((s) => s.suite.name === name) ?? fail(`unknown suite ${name}`);
+const sizes = () => JSON.parse(readFileSync(join(root, 'sizes.json'), 'utf8'));
+const rates = () => (existsSync(flags.budget) ? JSON.parse(readFileSync(flags.budget, 'utf8')) : {});
+const pct = (name) => (flags[name] === undefined ? undefined : Number(flags[name]));
 const stamp = () => new Date().toISOString();
 const newRunId = (label) => `${stamp().replace(/[:.]/g, '-')}-${label}`;
 
@@ -49,6 +61,7 @@ const commands = {
     const errs = [
       ...loadSuites(root).flatMap((s) => [...validateSuite(s.suite), ...s.cases.flatMap((c) => validateCase(c.spec, s.suite))]),
       ...loadExperiments(root).flatMap(validateExperiment),
+      ...validateSizes(sizes()),
     ];
     for (const e of errs) console.error(e);
     console.log(errs.length ? `${errs.length} errors` : 'ok');
@@ -66,20 +79,35 @@ const commands = {
     const { suite, cases } = suiteNamed(experiment.suite);
     const judges = loadJudges(root);
     const arms = flags.arm === 'both' ? ['baseline', 'candidate'] : [flags.arm];
-    for (const armName of arms) {
+    const size = sizes().sizes[flags.size] ?? fail(`unknown size ${flags.size}`);
+    const picked = selectCases(cases.filter((c) => c.spec.mode === 'sandbox' && (!flags.case || c.spec.id === flags.case)), size);
+    const past = listRuns(flags.history, suite.name).map((h) => readRun(flags.history, suite.name, h.runId));
+    const used = { fiveHourPct: pct('five-hour-used'), weeklyPct: pct('weekly-used') };
+    const plans = arms.map((armName) => {
       const arm = experiment[armName];
       const clash = suite.metrics.find((m) => m.kind === 'judge' && judges[m.judge].model === arm.model);
       if (clash) fail(`judge ${clash.judge} runs on ${arm.model}, the model under test; pin the judge to a different model`);
+      const rate = rates()[arm.model] ?? null;
+      const estimate = estimateTokens({ cases: picked, arms: 1, perTrial: perTrialTokens(past) });
+      const check = guard({ size: flags.size, estimate, rate, used, caps: size.caps });
+      if (!check.ok) fail(`budget guard refused ${armName} (${arm.model}):\n${check.reasons.join('\n')}`);
+      return { armName, arm, estimate, check, limit: allowance({ rate, caps: size.caps }) };
+    });
+    for (const { armName, arm, estimate, check, limit } of plans) {
       const runId = newRunId(`${experiment.name}-${armName}`);
       const startedAt = stamp();
       const results = [];
-      for (const { dir, spec } of cases.filter((c) => c.spec.mode === 'sandbox' && (!flags.case || c.spec.id === flags.case))) {
+      let spent = 0;
+      let partial = false;
+      trials: for (const { dir, spec } of picked) {
         for (let trial = 1; trial <= spec.trials; trial++) {
+          if (limit !== null && spent > limit) { partial = true; break trials; }
           const out = await runTrial({ caseDir: dir, spec, trial, arm: { ...arm, config: arm.config && join(root, arm.config) } });
           const folder = join(root, 'results', runId, spec.id, `trial-${trial}`);
           mkdirSync(folder, { recursive: true });
           writeFileSync(join(folder, 'transcript.txt'), out.transcript ?? '');
           results.push(...out.rows);
+          spent += out.rows.find((r) => r.metric === 'tokens')?.value ?? 0;
           const ran = out.rows.every((r) => r.status === 'ok');
           for (const check of spec.checks.filter((c) => c.judge)) {
             const row = { case: spec.id, metric: check.metric, trial, split: spec.split };
@@ -99,7 +127,7 @@ const commands = {
           }
         }
       }
-      const header = { runId, suite: suite.name, mode: 'sandbox', arm: armName, experiment: experiment.name, startedAt, finishedAt: stamp(), variant: arm };
+      const header = { runId, suite: suite.name, mode: 'sandbox', arm: armName, experiment: experiment.name, startedAt, finishedAt: stamp(), variant: arm, size: flags.size, partial, tokens: spent, estimate, uncalibrated: check.uncalibrated };
       print({ file: appendRun(flags.history, { header, results }) });
     }
   },
@@ -107,6 +135,7 @@ const commands = {
   compare([suiteName, baselineId, candidateId]) {
     const { suite } = suiteNamed(suiteName);
     const [baseline, candidate] = [baselineId, candidateId].map((id) => readRun(flags.history, suite.name, id));
+    for (const run of [baseline, candidate]) { const why = comparable(run); if (why) fail(why); }
     const floors = {};
     if (flags.aa?.length === 2) {
       const [a, a2] = flags.aa.map((id) => readRun(flags.history, suite.name, id));
@@ -131,6 +160,21 @@ const commands = {
     const result = { judge: name, model: judge.model, at: stamp(), ...stats, trusted: trusted(stats) };
     writeFileSync(file, JSON.stringify(result, null, 2) + '\n');
     print(result);
+  },
+
+  'calibrate-budget'([suiteName, runId]) {
+    const run = readRun(flags.history, suiteName, runId);
+    if (run.header.partial) fail(`run ${runId} is partial`);
+    const model = run.header.variant?.model ?? fail(`run ${runId} names no model`);
+    const tokens = run.results.filter((r) => r.metric === 'tokens' && r.status === 'ok').reduce((a, r) => a + r.value, 0);
+    const all = rates();
+    const next = { ...all[model] };
+    for (const [key, flag] of [['fiveHour', 'five-hour'], ['weekly', 'weekly']]) {
+      const measured = tokensPerPercent({ tokens, before: pct(`${flag}-before`), after: pct(`${flag}-after`) });
+      if (measured) next[key] = Math.round(measured);
+    }
+    writeFileSync(flags.budget, JSON.stringify({ ...all, [model]: { ...next, from: runId, at: stamp() } }, null, 2) + '\n');
+    print({ model, tokens, ...next });
   },
 
   runs([suiteName]) {

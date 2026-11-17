@@ -53,3 +53,9 @@ test('compareRuns pairs by case, gates on the target and demotes an untrusted ju
   assert.equal(held.metrics[0].role, 'diagnostic');
   assert.equal(held.gate, 'hold');
 });
+
+test('a partial run is refused by comparePair', async () => {
+  const { comparable } = await import('../src/compare.mjs');
+  assert.equal(comparable({ header: { partial: true, runId: 'r1' } }), 'run r1 is partial and stays out of comparisons');
+  assert.equal(comparable({ header: { runId: 'r2' } }), null);
+});

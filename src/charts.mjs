@@ -165,10 +165,12 @@ function stackedBar({ bars, parts }) {
   const top = Math.max(...bars.map((b) => b.parts[0] + b.parts[1]), 1);
   const step = 600 / bars.length;
   const width = Math.min(28, step - 4);
+  const every = Math.ceil(bars.length / 11);
+  const labelled = (i) => i === bars.length - 1 || (i % every === 0 && bars.length - 1 - i >= every / 2);
   const rects = bars.map((b, i) => {
     const x = 40 + i * step + (step - width) / 2;
     const [a, c] = b.parts.map((v) => (v / top) * 170);
-    return `<rect x="${x.toFixed(1)}" y="${(190 - a).toFixed(1)}" width="${width.toFixed(1)}" height="${a.toFixed(1)}" fill="var(--s3)"/><rect x="${x.toFixed(1)}" y="${(188 - a - c).toFixed(1)}" width="${width.toFixed(1)}" height="${c.toFixed(1)}" fill="var(--s2)"/><text x="${(x + width / 2).toFixed(1)}" y="206" text-anchor="middle">${esc(b.label)}</text>`;
+    return `<rect x="${x.toFixed(1)}" y="${(190 - a).toFixed(1)}" width="${width.toFixed(1)}" height="${a.toFixed(1)}" fill="var(--s3)"/><rect x="${x.toFixed(1)}" y="${(188 - a - c).toFixed(1)}" width="${width.toFixed(1)}" height="${c.toFixed(1)}" fill="var(--s2)"/>${labelled(i) ? `<text x="${(x + width / 2).toFixed(1)}" y="206" text-anchor="middle">${esc(b.label)}</text>` : ''}`;
   }).join('');
   return `<p class="legend"><span><i style="background:var(--s3)"></i>${esc(parts[0])}</span><span><i style="background:var(--s2)"></i>${esc(parts[1])}</span><span>tallest bar ${millions(top)}</span></p><svg viewBox="0 0 660 215" role="img" aria-label="tokens per week by outcome"><line x1="40" x2="640" y1="190" y2="190" class="rule"/>${rects}</svg>`;
 }

@@ -161,3 +161,12 @@ test('replay carries tokens as a metric and turn dimensions on a rule row', asyn
   assert.deepEqual(turn[0].dims, { turn: 3, context: 180000 });
   assert.equal(session.find((r) => r.metric === 'outcome').dims, undefined);
 });
+
+test('a long bar chart labels at most twelve bars so dates never collide', () => {
+  const bars = Array.from({ length: 30 }, (_, i) => ({ label: `w${i}`, parts: [i + 1, 1] }));
+  const html = renderChart({ id: 'x', title: 'T', question: 'Q', form: 'stacked-bar', builder: 'x' }, { bars, parts: ['Reached', 'Unreached'] });
+  const labels = html.match(/>w\d+</g);
+  assert.ok(labels.length <= 12, String(labels.length));
+  assert.ok(labels.includes('>w0<') && labels.includes('>w29<'));
+  assert.equal(html.match(/<rect /g).length, 60);
+});

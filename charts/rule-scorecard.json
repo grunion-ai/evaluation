@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "rule-scorecard",
+  "title": "Rule scorecard",
+  "question": "Where does each rule type stand now, and which way is it moving?",
+  "form": "scorecard",
+  "builder": "rule-scorecard",
+  "params": {
+    "metrics": [
+      "outcome",
+      "response",
+      "log",
+      "untyped"
+    ],
+    "track": "interactive"
+  }
+}

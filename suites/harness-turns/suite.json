@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "name": "harness-turns",
+  "kind": "regression",
+  "metrics": [
+    { "name": "response", "kind": "code", "scorer": "rule", "field": "response", "direction": "down", "unit": "rate", "role": "target" }
+  ]
+}

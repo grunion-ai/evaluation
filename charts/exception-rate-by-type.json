@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "exception-rate-by-type",
+  "title": "Exception rate by rule type",
+  "question": "Which rule type is drifting?",
+  "form": "line",
+  "builder": "weighted-lines",
+  "params": {
+    "metrics": [
+      "response",
+      "outcome",
+      "log",
+      "untyped"
+    ],
+    "track": "interactive"
+  }
+}

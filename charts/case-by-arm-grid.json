@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "case-by-arm-grid",
+  "title": "Case by arm grid",
+  "question": "Which cases moved between the two arms?",
+  "form": "case-grid",
+  "builder": "case-arm-grid",
+  "params": {
+    "metric": "reads_human"
+  }
+}

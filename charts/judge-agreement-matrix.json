@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "judge-agreement-matrix",
+  "title": "Judge agreement matrix",
+  "question": "Does this judge agree with the human labels?",
+  "form": "agreement-matrix",
+  "builder": "agreement-matrix",
+  "params": {
+    "label": "label",
+    "verdict": "verdict"
+  }
+}

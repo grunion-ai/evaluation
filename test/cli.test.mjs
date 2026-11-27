@@ -39,7 +39,7 @@ test('the harness-rules suite replays rule rows into history', () => {
   assert.equal(out.status, 0, out.stderr);
   const lines = readFileSync(join(dir, 'harness-rules', 'r1.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
   assert.equal(lines[0].suite, 'harness-rules');
-  assert.deepEqual(lines.slice(1).map((r) => [r.metric, r.value, r.exceptions, r.waivers, r.harness]), [['response', 0.25, 1, 0, 'abc123'], ['outcome', 0, 0, 0, 'abc123'], ['log', 0, 0, 0, 'abc123'], ['untyped', null, 0, 0, 'abc123']]);
+  assert.deepEqual(lines.slice(1).map((r) => [r.metric, r.value, r.exceptions, r.waivers, r.harness]), [['response', 0.25, 1, 0, 'abc123'], ['outcome', 0, 0, 0, 'abc123'], ['log', 0, 0, 0, 'abc123'], ['untyped', null, 0, 0, 'abc123'], ['tokens', null, undefined, undefined, undefined]]);
 });
 
 test('an unknown command exits 2 with usage', () => {

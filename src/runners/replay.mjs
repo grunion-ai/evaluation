@@ -17,6 +17,7 @@ const ruleRow = (s, m) => {
     track: s.track ?? null,
     harness: s.harness ?? null,
     harnessAt: s.harnessAt ?? null,
+    ...(s.dims ? { dims: s.dims } : {}),
   };
 };
 

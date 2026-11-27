@@ -168,7 +168,26 @@ export function projectTokens(rows, { last = HALF_LIFE * 3, track }) {
   return { sessions: mine.length, total: sum(mine, (r) => tokens.get(r.case)), slices: [...ranked.slice(0, PROJECT_SLICES), ...(rest.length ? [other] : [])] };
 }
 
+const probeState = (r) => (r.status !== 'ok' ? 'unknown' : r.value ? 'live' : 'down');
+
+export function connectorStatus(runs, { last = 30 }) {
+  const probes = runs.map((r) => r.results.filter((x) => x.metric === 'live')).filter((r) => r.length);
+  if (!probes.length) return { missing: 'no connector probe run in history' };
+  const recent = probes.slice(-Number(last)).flat().filter((r) => r.status === 'ok');
+  const groups = new Map();
+  const counts = { live: 0, down: 0, unknown: 0 };
+  for (const r of [...probes.at(-1)].sort((a, b) => (a.dims?.order ?? 99) - (b.dims?.order ?? 99) || a.case.localeCompare(b.case))) {
+    const checks = recent.filter((x) => x.case === r.case);
+    const state = probeState(r);
+    counts[state] += 1;
+    const group = r.dims?.group ?? 'Other';
+    groups.set(group, [...(groups.get(group) ?? []), { id: r.case, label: r.dims?.label ?? r.case, order: r.dims?.order ?? 99, state, detail: r.dims?.detail ?? '', live: checks.filter((x) => x.value).length, checks: checks.length }]);
+  }
+  return { at: probes.at(-1)[0].at ?? runs.at(-1).header.startedAt, counts, groups: [...groups].map(([label, nodes]) => ({ label, nodes })) };
+}
+
 export const BUILDERS = {
+  'connector-status': (ctx, p) => connectorStatus(ctx.connectorRuns, p),
   'last-eval': (ctx, p) => lastEval(ctx.rows, ctx.headers, p),
   'project-tokens': (ctx, p) => projectTokens(ctx.rows, p),
   'token-weighted-outcome': (ctx, p) => tokenWeightedOutcome(ctx.rows, p),
@@ -277,7 +296,30 @@ function doughnut({ slices, total, sessions }) {
   return `<div class="ring"><svg viewBox="0 0 180 180" width="180" height="180" role="img" aria-label="token spend by project">${outer}${inner}<text x="90" y="88" text-anchor="middle" class="big">${millions(total)}</text><text x="90" y="104" text-anchor="middle">${sessions} sessions</text></svg><table class="spend"><tr><th>Project</th><th>Tokens</th><th>Share</th><th>Reached</th><th>Exception</th><th>Unknown</th></tr>${rows}</table></div><p class="legend"><span><i style="background:var(--s3)"></i>Reached</span><span><i style="background:var(--s2)"></i>Exception</span><span><i style="background:var(--line)"></i>Unknown</span><span>inner ring splits each project's tokens by outcome</span></p>`;
 }
 
-export const FORMS = { findings, doughnut, line, 'stacked-bar': stackedBar, 'dot-grid': dotGrid, 'heat-grid': heatGrid, scorecard, tiles, 'case-grid': caseGrid, 'agreement-matrix': agreement };
+const STATE_WORD = { live: 'Live', down: 'Down', unknown: 'Unknown' };
+const STATE_DASH = { live: '', down: '5 4', unknown: '1 4' };
+const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+
+function statusMap({ at, counts, groups }) {
+  const ROW = 62;
+  let y = 4;
+  const drawn = groups.map((g) => {
+    const heading = `<text x="136" y="${y + 12}">${esc(g.label)}</text>`;
+    y += 20;
+    const nodes = g.nodes.map((n) => {
+      const top = y;
+      y += ROW;
+      return { ...n, top, mid: top + (ROW - 8) / 2 };
+    });
+    y += 6;
+    return { heading, nodes };
+  });
+  const hub = y / 2;
+  const node = (n) => `<path class="link ${n.state}" stroke-dasharray="${STATE_DASH[n.state]}" d="M88 ${hub} C 112 ${hub}, 112 ${n.mid}, 136 ${n.mid}"/><rect class="node ${n.state}" stroke-dasharray="${STATE_DASH[n.state]}" x="136" y="${n.top}" width="280" height="${ROW - 8}" rx="6"/><text class="name" x="146" y="${n.top + 17}">${n.order < 99 ? `${n.order}. ` : ''}${esc(n.label)}</text><circle class="dot ${n.state}" cx="${n.state === 'unknown' ? 346 : 366}" cy="${n.top + 13}" r="4"/><text class="name" x="408" y="${n.top + 17}" text-anchor="end">${STATE_WORD[n.state]}</text><text x="146" y="${n.top + 33}">${esc(clip(n.detail, 46))}</text><text x="146" y="${n.top + 47}">live in ${n.live} of ${n.checks} checks</text>`;
+  return `<p class="when"><strong>${counts.live} live</strong>, ${counts.down} down, ${counts.unknown} unknown at ${esc(String(at).slice(0, 16).replace('T', ' '))} UTC</p><svg viewBox="0 0 420 ${y}" role="img" aria-label="connector status map"><rect class="node hub" x="4" y="${hub - 18}" width="84" height="36" rx="6"/><text class="name" x="46" y="${hub + 4}" text-anchor="middle">Session</text>${drawn.map((g) => g.heading + g.nodes.map(node).join('')).join('')}</svg><p class="legend"><span>numbers give the order a session checks the sources; a dashed link is down, a dotted link was not checked</span></p>`;
+}
+
+export const FORMS = { findings, doughnut, line, 'stacked-bar': stackedBar, 'dot-grid': dotGrid, 'heat-grid': heatGrid, scorecard, tiles, 'case-grid': caseGrid, 'agreement-matrix': agreement, 'status-map': statusMap };
 
 export function validateChart(spec) {
   const errs = [];
@@ -333,6 +375,10 @@ th{font-weight:500;text-align:left;font-size:12px;color:var(--ink2)}
 .spend{flex:1;min-width:260px;font-size:12px;font-variant-numeric:tabular-nums}
 .spend td{text-align:right}
 .spend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.link{fill:none;stroke-width:1.5}.node{fill:var(--bg);stroke-width:1.5}.hub{stroke:var(--ink2)}
+.link.live,.node.live{stroke:var(--s3)}.link.down,.node.down{stroke:var(--s2)}.link.unknown,.node.unknown{stroke:var(--s4)}
+.dot.live{fill:var(--s3)}.dot.down{fill:var(--s2)}.dot.unknown{fill:var(--s4)}
+text.name{fill:var(--ink);font-size:13px;font-weight:500}
 section:first-of-type{grid-column:1/-1}`;
 
 export function renderPage(items, { title }) {

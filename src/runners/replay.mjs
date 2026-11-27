@@ -21,7 +21,9 @@ const ruleRow = (s, m) => {
   };
 };
 
-const SCORERS = { field: fieldRow, rule: ruleRow };
+const probeRow = (s, m) => ({ ...fieldRow(s, m), at: s.at ?? null, ...(s.dims ? { dims: s.dims } : {}) });
+
+const SCORERS = { field: fieldRow, rule: ruleRow, probe: probeRow };
 
 export const replay = ({ suite, sessions }) =>
   sessions.flatMap((s) =>

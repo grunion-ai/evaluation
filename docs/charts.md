@@ -18,7 +18,7 @@ node src/cli.mjs charts judge-agreement-matrix --pairs <labels.jsonl> --param ve
 | `id` | File name without `.json`, used on the command line |
 | `title` | Noun phrase shown above the chart |
 | `question` | The one question the chart answers, shown under the title |
-| `form` | How it is drawn: `findings`, `doughnut`, `line`, `stacked-bar`, `dot-grid`, `heat-grid`, `scorecard`, `tiles`, `case-grid`, `agreement-matrix` |
+| `form` | How it is drawn: `findings`, `doughnut`, `line`, `stacked-bar`, `dot-grid`, `heat-grid`, `scorecard`, `tiles`, `case-grid`, `agreement-matrix`, `status-map` |
 | `builder` | Which function in `src/charts.mjs` turns history rows into the data the form draws |
 | `params` | Arguments for the builder: `metrics`, `track`, `metric`, `last`, field paths |
 | `order` | Position on the page; lower comes first, and the first chart spans the page width |
@@ -33,6 +33,7 @@ node src/cli.mjs charts judge-agreement-matrix --pairs <labels.jsonl> --param ve
 | Id | Form | Reads |
 | --- | --- | --- |
 | `last-eval` | findings | The newest `harness-rules` run, each rule type against the eval before it |
+| `connector-status-map` | status-map | The newest `harness-connectors` run: one node per source with its state, its detail and its count over the last 30 runs |
 | `token-spend-by-project` | doughnut | The last 90 sessions: `tokens`, outcome and `dims.project` |
 | `token-weighted-outcome` | line | `harness-rules` outcome rows and the `tokens` metric |
 | `exception-rate-by-type` | line | `harness-rules` rows for each rule type |
@@ -46,7 +47,9 @@ node src/cli.mjs charts judge-agreement-matrix --pairs <labels.jsonl> --param ve
 
 ## The dashboard
 
-`charts` with no id draws the dashboard: every template whose spec does not say `"default": false`, in `order`. Today that is the last eval, exception rate by rule type, the rule scorecard, token-weighted outcome, token spend by project, the exception dot grid and the judge agreement matrix. The other four stay in the library and draw when named.
+`charts` with no id draws the dashboard: every template whose spec does not say `"default": false`, in `order`. Today that is the last eval, the connector status map, exception rate by rule type, the rule scorecard, token-weighted outcome, token spend by project, the exception dot grid and the judge agreement matrix. The other four stay in the library and draw when named.
+
+The connector status map reads the `harness-connectors` suite. The harness probes each source a session checks for a detail Kyle left out (Net tasks, Saves, the session log, each mail account, texts) and replays one row per source: `live` true, false or absent, with `dims.label`, `dims.group`, `dims.order` and `dims.detail`. The `probe` scorer keeps `at` and `dims` on the result. A source with no `live` value draws as unknown, never as down.
 
 The last eval block compares each rule type with the newest run from an earlier day. With no earlier run it compares with the rate 30 scored sessions back and says so.
 

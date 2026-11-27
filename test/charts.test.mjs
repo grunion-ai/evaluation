@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { appendRun } from '../src/history.mjs';
-import { BUILDERS, FORMS, MIN_CELL, agreementMatrix, caseArmGrid, ewSeries, headlineTiles, lastEval, loadCharts, projectTokens, renderChart, renderPage, ruleScorecard, tokenWeightedOutcome, turnContextGrid, typeSplit, validateChart, weeklyTokens, weightedLines } from '../src/charts.mjs';
+import { BUILDERS, FORMS, MIN_CELL, agreementMatrix, caseArmGrid, connectorStatus, ewSeries, headlineTiles, lastEval, loadCharts, projectTokens, renderChart, renderPage, ruleScorecard, tokenWeightedOutcome, turnContextGrid, typeSplit, validateChart, weeklyTokens, weightedLines } from '../src/charts.mjs';
 
 const root = join(import.meta.dirname, '..');
 const cli = join(root, 'src', 'cli.mjs');
@@ -13,12 +13,12 @@ const day = (d) => `2026-11-${String(d).padStart(2, '0')}T10:00:00Z`;
 const rule = (id, d, metric, exceptions, checked = 1, over = {}) => ({ type: 'result', case: id, metric, trial: 1, value: checked ? exceptions / checked : null, status: checked ? 'ok' : 'unknown', checked, exempt: 0, waivers: 0, exceptions, at: day(d), track: 'interactive', harness: 'aaa', harnessAt: day(1), ...over });
 const tok = (id, value) => ({ type: 'result', case: id, metric: 'tokens', trial: 1, value, status: value == null ? 'unknown' : 'ok' });
 
-test('the library holds eleven templates, each valid and on a known form and builder', () => {
+test('the library holds twelve templates, each valid and on a known form and builder', () => {
   const charts = loadCharts(root);
-  assert.deepEqual(charts.map((c) => c.id).sort(), ['case-by-arm-grid', 'exception-dot-grid', 'exception-rate-by-type', 'headline-tiles', 'judge-agreement-matrix', 'last-eval', 'rule-scorecard', 'token-spend-by-project', 'token-weighted-outcome', 'turn-by-context-grid', 'weekly-tokens-by-outcome']);
-  assert.deepEqual(charts.filter((c) => c.default !== false).map((c) => c.id), ['last-eval', 'exception-rate-by-type', 'rule-scorecard', 'token-weighted-outcome', 'token-spend-by-project', 'exception-dot-grid', 'judge-agreement-matrix']);
+  assert.deepEqual(charts.map((c) => c.id).sort(), ['case-by-arm-grid', 'connector-status-map', 'exception-dot-grid', 'exception-rate-by-type', 'headline-tiles', 'judge-agreement-matrix', 'last-eval', 'rule-scorecard', 'token-spend-by-project', 'token-weighted-outcome', 'turn-by-context-grid', 'weekly-tokens-by-outcome']);
+  assert.deepEqual(charts.filter((c) => c.default !== false).map((c) => c.id), ['last-eval', 'connector-status-map', 'exception-rate-by-type', 'rule-scorecard', 'token-weighted-outcome', 'token-spend-by-project', 'exception-dot-grid', 'judge-agreement-matrix']);
   for (const c of charts) assert.deepEqual(validateChart(c), [], c.id);
-  assert.deepEqual(Object.keys(FORMS).sort(), ['agreement-matrix', 'case-grid', 'dot-grid', 'doughnut', 'findings', 'heat-grid', 'line', 'scorecard', 'stacked-bar', 'tiles']);
+  assert.deepEqual(Object.keys(FORMS).sort(), ['agreement-matrix', 'case-grid', 'dot-grid', 'doughnut', 'findings', 'heat-grid', 'line', 'scorecard', 'stacked-bar', 'status-map', 'tiles']);
   for (const c of charts) assert.ok(BUILDERS[c.builder], c.builder);
 });
 
@@ -133,7 +133,7 @@ test('the charts command lists templates and writes one page from history', () =
   appendRun(dir, { header: { runId: 'r1', suite: 'harness-rules', mode: 'replay', arm: 'nightly', startedAt: day(21), variant: {} }, results });
   const list = spawnSync('node', [cli, 'charts', '--list'], { encoding: 'utf8' });
   assert.equal(list.status, 0, list.stderr);
-  assert.equal(JSON.parse(list.stdout).length, 11);
+  assert.equal(JSON.parse(list.stdout).length, 12);
   const all = spawnSync('node', [cli, 'charts', '--history', dir, '--out', join(dir, 'all.html'), '--min', '1'], { encoding: 'utf8' });
   assert.equal(all.status, 0, all.stderr);
   const report = readFileSync(join(dir, 'all.html'), 'utf8');
@@ -222,4 +222,50 @@ test('the findings and doughnut forms draw their data', () => {
   assert.match(ring, /harness/);
   assert.match(ring, /80%/);
   assert.doesNotMatch(findings + ring, /NaN|undefined/);
+});
+
+const probe = (id, live, order, over = {}) => ({ type: 'result', case: id, metric: 'live', trial: 1, value: live === null ? null : Number(live), status: live === null ? 'unknown' : 'ok', at: day(20), dims: { label: id, group: 'Missing detail lookup', order, detail: `${id} detail`, ...over } });
+const probeRun = (runId, d, results) => ({ header: { runId, startedAt: day(d) }, results });
+
+test('the connector status map reads the newest probe run, in lookup order, with each source counted over the last runs', () => {
+  const runs = [
+    probeRun('p1', 18, [probe('net-tasks', true, 1), probe('texts', true, 5)]),
+    probeRun('p2', 19, [probe('net-tasks', true, 1), probe('texts', false, 5)]),
+    probeRun('p3', 20, [probe('texts', false, 5), probe('email-personal', null, 4), probe('net-tasks', true, 1), probe('slack', true, 9, { group: 'Session connectors' })]),
+  ];
+  const data = connectorStatus(runs, { last: 2 });
+  assert.equal(data.at, day(20));
+  assert.deepEqual(data.counts, { live: 2, down: 1, unknown: 1 });
+  assert.deepEqual(data.groups.map((g) => [g.label, g.nodes.map((n) => n.id)]), [['Missing detail lookup', ['net-tasks', 'email-personal', 'texts']], ['Session connectors', ['slack']]]);
+  assert.deepEqual(data.groups[0].nodes[0], { id: 'net-tasks', label: 'net-tasks', order: 1, state: 'live', detail: 'net-tasks detail', live: 2, checks: 2 });
+  assert.deepEqual(data.groups[0].nodes.map((n) => [n.state, n.live, n.checks]), [['live', 2, 2], ['unknown', 0, 0], ['down', 0, 2]]);
+  assert.match(connectorStatus([], {}).missing, /no connector probe/);
+});
+
+test('the status map form names every source with its state in words and draws one link each', () => {
+  const data = connectorStatus([probeRun('p1', 20, [probe('net-tasks', true, 1), probe('texts', false, 5, { detail: 'chat.db <unreadable>' }), probe('email-personal', null, 4)])], {});
+  const html = renderChart({ id: 'connector-status-map', title: 'Connector status map', question: 'Q?', form: 'status-map', builder: 'connector-status' }, data);
+  assert.equal(html.match(/<path /g).length, 3);
+  for (const word of ['net-tasks', 'Live', 'Down', 'Unknown', '1 live', '1 down', '1 unknown', 'live in 1 of 1 checks', 'chat.db &lt;unreadable&gt;']) assert.ok(html.includes(word), word);
+  assert.doesNotMatch(html, /NaN|undefined/);
+});
+
+test('the charts command draws the connector map from harness-connectors history', async () => {
+  const { replay } = await import('../src/runners/replay.mjs');
+  const { loadSuites } = await import('../src/repo.mjs');
+  const { validateSuite } = await import('../src/schema.mjs');
+  const suite = loadSuites(root).map((s) => s.suite).find((s) => s.name === 'harness-connectors');
+  assert.deepEqual(validateSuite(suite), []);
+  const results = replay({ suite, sessions: [{ id: 'net-tasks', at: day(20), live: true, dims: { label: 'Net tasks', group: 'Missing detail lookup', order: 1, detail: 'rows readable' } }, { id: 'texts', at: day(20), live: false, dims: { label: 'Texts', order: 5 } }, { id: 'saves', at: day(20) }] });
+  assert.deepEqual(results[0], { case: 'net-tasks', metric: 'live', trial: 1, split: 'heldout', value: 1, status: 'ok', at: day(20), dims: { label: 'Net tasks', group: 'Missing detail lookup', order: 1, detail: 'rows readable' } });
+  assert.deepEqual([results[1].value, results[1].status, results[2].value, results[2].status], [0, 'ok', null, 'unknown']);
+  const dir = mkdtempSync(join(tmpdir(), 'charts-'));
+  appendRun(dir, { header: { runId: 'p1', suite: 'harness-connectors', mode: 'replay', arm: 'nightly', startedAt: day(20), variant: {} }, results });
+  const out = join(dir, 'map.html');
+  const made = spawnSync('node', [cli, 'charts', 'connector-status-map', '--history', dir, '--out', out], { encoding: 'utf8' });
+  assert.equal(made.status, 0, made.stderr);
+  const page = readFileSync(out, 'utf8');
+  assert.match(page, /Net tasks/);
+  assert.match(page, /rows readable/);
+  assert.match(page, /1 live/);
 });

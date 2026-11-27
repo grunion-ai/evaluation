@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "connector-status-map",
+  "title": "Connector status map",
+  "question": "Which sources for a detail Kyle left out were live at the last probe?",
+  "form": "status-map",
+  "builder": "connector-status",
+  "params": {
+    "last": 30
+  },
+  "order": 1.5
+}

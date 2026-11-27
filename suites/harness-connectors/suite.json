@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "name": "harness-connectors",
+  "kind": "regression",
+  "metrics": [
+    { "name": "live", "kind": "code", "scorer": "probe", "field": "live", "direction": "up", "unit": "rate", "role": "target" }
+  ]
+}

@@ -271,6 +271,7 @@ const commands = {
       headers: ruleRuns.map((r) => r.header),
       rows: [...ruleRows(ruleRuns), ...tokens.values()],
       turnRows: ruleRows(results('harness-turns')),
+      connectorRuns: results('harness-connectors'),
       runs: { baseline: arm(flags.baseline), candidate: arm(flags.candidate) },
       pairs: flags.pairs ? readJsonl(flags.pairs) : [],
     };

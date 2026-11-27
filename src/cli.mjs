@@ -11,6 +11,7 @@ import { loadExperiments, loadJudges, loadSuites, readJsonl } from './repo.mjs';
 import { replay } from './runners/replay.mjs';
 import { runTrial } from './runners/sandbox.mjs';
 import { validateCase, validateExperiment, validateSizes, validateSuite } from './schema.mjs';
+import { HALF_LIFE, MIN_WEIGHTED, ruleRows, ruleTrend } from './rules.mjs';
 import { caseMeans, noiseFloor } from './stats.mjs';
 import { agreement as pairAgreement, buildData, loadRounds, loadTaxonomy, openTask, pairPrompt, parsePick, pending, validateRound } from './visual.mjs';
 
@@ -33,6 +34,9 @@ const { values: flags, positionals } = parseArgs({
     'five-hour-after': { type: 'string' },
     'weekly-before': { type: 'string' },
     'weekly-after': { type: 'string' },
+    'half-life': { type: 'string', default: String(HALF_LIFE) },
+    min: { type: 'string', default: String(MIN_WEIGHTED) },
+    since: { type: 'string' },
   },
 });
 const [command, ...args] = positionals;
@@ -233,6 +237,14 @@ const commands = {
     const out = pairAgreement(round, rows('votes.jsonl'), rows('judge.jsonl'));
     print({ round: round.id, pairs: round.pairs.length, ...out });
     process.exit(out.complete ? 0 : 1);
+  },
+
+  trend([suiteName]) {
+    const { suite } = suiteNamed(suiteName);
+    const runs = listRuns(flags.history, suite.name).map((h) => readRun(flags.history, suite.name, h.runId));
+    const halfLife = Number(flags['half-life']);
+    const metrics = suite.metrics.filter((m) => m.scorer === 'rule').map((m) => m.name);
+    print({ suite: suite.name, halfLife, min: Number(flags.min), runs: runs.length, trend: ruleTrend(ruleRows(runs), { metrics, halfLife, min: Number(flags.min), since: flags.since }) });
   },
 
   runs([suiteName]) {

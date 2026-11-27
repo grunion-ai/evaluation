@@ -11,7 +11,7 @@ import { loadExperiments, loadJudges, loadSuites, readJsonl } from './repo.mjs';
 import { replay } from './runners/replay.mjs';
 import { runTrial } from './runners/sandbox.mjs';
 import { validateCase, validateExperiment, validateSizes, validateSuite } from './schema.mjs';
-import { HALF_LIFE, MIN_WEIGHTED, ruleRows, ruleTrend } from './rules.mjs';
+import { CHANGE_N, HALF_LIFE, MIN_WEIGHTED, ruleChange, ruleRows, ruleTrend } from './rules.mjs';
 import { caseMeans, noiseFloor } from './stats.mjs';
 import { agreement as pairAgreement, buildData, loadRounds, loadTaxonomy, openTask, pairPrompt, parsePick, pending, validateRound } from './visual.mjs';
 
@@ -37,6 +37,8 @@ const { values: flags, positionals } = parseArgs({
     'half-life': { type: 'string', default: String(HALF_LIFE) },
     min: { type: 'string', default: String(MIN_WEIGHTED) },
     since: { type: 'string' },
+    n: { type: 'string', default: String(CHANGE_N) },
+    at: { type: 'string' },
   },
 });
 const [command, ...args] = positionals;
@@ -245,6 +247,18 @@ const commands = {
     const halfLife = Number(flags['half-life']);
     const metrics = suite.metrics.filter((m) => m.scorer === 'rule').map((m) => m.name);
     print({ suite: suite.name, halfLife, min: Number(flags.min), runs: runs.length, trend: ruleTrend(ruleRows(runs), { metrics, halfLife, min: Number(flags.min), since: flags.since }) });
+  },
+
+  change([suiteName, sha]) {
+    const { suite } = suiteNamed(suiteName);
+    if (!sha) fail('usage: evaluation change <suite> <harness commit sha> [--n 30] [--min 20] [--at <commit time>]');
+    const runs = listRuns(flags.history, suite.name).map((h) => readRun(flags.history, suite.name, h.runId));
+    const metrics = suite.metrics.filter((m) => m.scorer === 'rule').map((m) => m.name);
+    try {
+      print({ suite: suite.name, ...ruleChange(ruleRows(runs), sha, { metrics, n: Number(flags.n), min: Number(flags.min), at: flags.at }) });
+    } catch (e) {
+      fail(e.message);
+    }
   },
 
   runs([suiteName]) {

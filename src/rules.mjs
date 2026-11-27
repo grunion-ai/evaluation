@@ -1,6 +1,7 @@
 export const HALF_LIFE = 30;
 export const HORIZON_HALF_LIVES = 3;
 export const MIN_WEIGHTED = 20;
+export const CHANGE_N = 30;
 export const TRACKS = ['interactive', 'automated'];
 
 const COUNTS = ['checked', 'exempt', 'waivers', 'exceptions'];
@@ -45,3 +46,26 @@ export const ruleTrend = (rows, { metrics, since, ...opts } = {}) =>
       return { track, metric, ...now, ...(since ? { previous, change, direction } : {}), head: mine.at(-1)?.harness ?? null };
     }),
   );
+
+const side = (rows, min) => {
+  const checked = total(rows, 'checked');
+  return { sessions: rows.length, checked, exceptions: total(rows, 'exceptions'), waivers: total(rows, 'waivers'), rate: checked >= min && checked > 0 ? round3(total(rows, 'exceptions') / checked) : null, head: rows.at(-1)?.harness ?? null };
+};
+
+export const ruleChange = (rows, sha, { metrics, n = CHANGE_N, min = MIN_WEIGHTED, at } = {}) => {
+  const ran = rows.filter((r) => String(r.harness ?? '').startsWith(sha));
+  const anchor = at ?? ran.map((r) => r.harnessAt).sort()[0];
+  if (!anchor) throw new Error(`no session ran on ${sha}; pass --at with the commit time`);
+  const stamp = (ts) => new Date(ts).toISOString();
+  const results = TRACKS.flatMap((track) =>
+    metrics.map((metric) => {
+      const mine = rows.filter((r) => r.track === track && r.metric === metric && r.checked > 0 && r.harnessAt);
+      const before = side(mine.filter((r) => stamp(r.harnessAt) < stamp(anchor)).slice(-n), min);
+      const after = side(mine.filter((r) => stamp(r.harnessAt) >= stamp(anchor)).slice(0, n), min);
+      const known = before.rate !== null && after.rate !== null;
+      const delta = known ? round3(after.rate - before.rate) : null;
+      return { track, metric, before, after, delta, verdict: !known ? 'insufficient' : delta > 0 ? 'worse' : delta < 0 ? 'better' : 'flat' };
+    }),
+  );
+  return { harness: ran[0]?.harness ?? sha, at: anchor, n, metrics: results };
+};

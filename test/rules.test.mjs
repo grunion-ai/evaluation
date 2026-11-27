@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { HALF_LIFE, HORIZON_HALF_LIVES, MIN_WEIGHTED, ruleRows, weightedRate, ruleTrend } from '../src/rules.mjs';
+import { HALF_LIFE, HORIZON_HALF_LIVES, MIN_WEIGHTED, ruleRows, weightedRate, ruleTrend, CHANGE_N, ruleChange } from '../src/rules.mjs';
 
 const cli = join(import.meta.dirname, '..', 'src', 'cli.mjs');
 const day = (d) => `2026-11-${String(d).padStart(2, '0')}T10:00:00Z`;
@@ -65,4 +65,37 @@ test('the trend command reads the history and prints the weighted rates', () => 
   assert.deepEqual([response.sessions, response.checked, response.exceptions], [6, 24, 6]);
   assert.ok(response.rate > 0.25 && response.rate < 0.5);
   assert.equal(report.trend.find((t) => t.metric === 'untyped' && t.track === 'interactive').rate, null);
+});
+
+const on = (id, d, exceptions, sha, shaDay, over = {}) => row(id, d, exceptions, 4, { harness: sha, harnessAt: day(shaDay), ...over });
+
+test('a change comparison is keyed on the harness commit and scores the sessions on each side of it', () => {
+  assert.equal(CHANGE_N, 30);
+  const rows = [on('b0', 10, 4, 'aaa111', 1), on('b1', 11, 2, 'aaa111', 1), on('b2', 12, 2, 'bbb222', 5), on('a1', 14, 0, 'ccc333', 13), on('a2', 15, 1, 'ccc333', 13), on('a3', 16, 4, 'ddd444', 15), on('x', 14, 4, 'ccc333', 13, { track: 'automated' })];
+  const c = ruleChange(rows, 'ccc3', { metrics: ['response'], n: 2, min: 1 });
+  assert.deepEqual([c.harness, c.at, c.n], ['ccc333', day(13), 2]);
+  assert.deepEqual(c.metrics[0], { track: 'interactive', metric: 'response', before: { sessions: 2, checked: 8, exceptions: 4, waivers: 0, rate: 0.5, head: 'bbb222' }, after: { sessions: 2, checked: 8, exceptions: 1, waivers: 0, rate: 0.125, head: 'ccc333' }, delta: -0.375, verdict: 'better' });
+  assert.deepEqual([c.metrics[1].track, c.metrics[1].before.sessions, c.metrics[1].verdict], ['automated', 0, 'insufficient']);
+  assert.equal(ruleChange(rows, 'ddd444', { metrics: ['response'], n: 1, min: 1 }).metrics[0].verdict, 'worse');
+  assert.equal(ruleChange(rows, 'ccc333', { metrics: ['response'], n: 2, min: 9 }).metrics[0].verdict, 'insufficient');
+});
+
+test('a commit no session ran on needs its time, and an unknown one without a time is refused', () => {
+  const rows = [on('b1', 11, 4, 'aaa111', 1), on('a1', 14, 0, 'ccc333', 13)];
+  assert.throws(() => ruleChange(rows, 'eee555', { metrics: ['response'] }), /no session ran on eee555/);
+  const c = ruleChange(rows, 'eee555', { metrics: ['response'], n: 1, min: 1, at: day(12) });
+  assert.deepEqual([c.harness, c.metrics[0].before.sessions, c.metrics[0].after.sessions, c.metrics[0].verdict], ['eee555', 1, 1, 'better']);
+});
+
+test('the change command prints the comparison for one commit', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'rules-change-'));
+  const counts = (checked, exceptions) => ({ checked, exempt: 0, waivers: 0, exceptions });
+  const sessions = Array.from({ length: 8 }, (_, i) => JSON.stringify({ id: `s${i}`, at: day(10 + i), track: 'interactive', harness: i < 4 ? 'aaa111' : 'bbb222', harnessAt: day(i < 4 ? 1 : 13), response: counts(4, i < 4 ? 2 : 0), outcome: counts(1, 0), log: counts(1, 0), untyped: counts(0, 0) }));
+  writeFileSync(join(dir, 'rows.jsonl'), sessions.join('\n'));
+  assert.equal(spawnSync('node', [cli, 'replay', 'harness-rules', join(dir, 'rows.jsonl'), '--history', dir, '--run-id', 'r1'], { encoding: 'utf8' }).status, 0);
+  const out = spawnSync('node', [cli, 'change', 'harness-rules', 'bbb222', '--history', dir, '--n', '4', '--min', '1'], { encoding: 'utf8' });
+  assert.equal(out.status, 0, out.stderr);
+  const response = JSON.parse(out.stdout).metrics.find((m) => m.metric === 'response' && m.track === 'interactive');
+  assert.deepEqual([response.before.rate, response.after.rate, response.verdict], [0.5, 0, 'better']);
+  assert.equal(spawnSync('node', [cli, 'change', 'harness-rules', 'zzz', '--history', dir], { encoding: 'utf8' }).status, 2);
 });

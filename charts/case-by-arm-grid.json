@@ -7,5 +7,6 @@
   "builder": "case-arm-grid",
   "params": {
     "metric": "reads_human"
-  }
+  },
+  "default": false
 }

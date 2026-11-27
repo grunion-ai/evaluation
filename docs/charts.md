@@ -18,9 +18,11 @@ node src/cli.mjs charts judge-agreement-matrix --pairs <labels.jsonl> --param ve
 | `id` | File name without `.json`, used on the command line |
 | `title` | Noun phrase shown above the chart |
 | `question` | The one question the chart answers, shown under the title |
-| `form` | How it is drawn: `line`, `stacked-bar`, `dot-grid`, `heat-grid`, `scorecard`, `tiles`, `case-grid`, `agreement-matrix` |
+| `form` | How it is drawn: `findings`, `doughnut`, `line`, `stacked-bar`, `dot-grid`, `heat-grid`, `scorecard`, `tiles`, `case-grid`, `agreement-matrix` |
 | `builder` | Which function in `src/charts.mjs` turns history rows into the data the form draws |
-| `params` | Arguments for the builder: `metrics`, `track`, `metric`, field paths |
+| `params` | Arguments for the builder: `metrics`, `track`, `metric`, `last`, field paths |
+| `order` | Position on the page; lower comes first, and the first chart spans the page width |
+| `default` | `false` keeps a template in the library and off the page drawn when no id is given |
 
 `--param key=value` overrides one of a spec's `params` for a single run, and can be given more than once.
 
@@ -30,6 +32,8 @@ node src/cli.mjs charts judge-agreement-matrix --pairs <labels.jsonl> --param ve
 
 | Id | Form | Reads |
 | --- | --- | --- |
+| `last-eval` | findings | The newest `harness-rules` run, each rule type against the eval before it |
+| `token-spend-by-project` | doughnut | The last 90 sessions: `tokens`, outcome and `dims.project` |
 | `token-weighted-outcome` | line | `harness-rules` outcome rows and the `tokens` metric |
 | `exception-rate-by-type` | line | `harness-rules` rows for each rule type |
 | `weekly-tokens-by-outcome` | stacked-bar | `harness-rules` outcome rows and the `tokens` metric |
@@ -39,6 +43,12 @@ node src/cli.mjs charts judge-agreement-matrix --pairs <labels.jsonl> --param ve
 | `headline-tiles` | tiles | `harness-rules` rows, kept share per rule type |
 | `case-by-arm-grid` | case-grid | Two runs of one suite, named on the command line |
 | `judge-agreement-matrix` | agreement-matrix | A labels file with a human label and a judge verdict per line |
+
+## The dashboard
+
+`charts` with no id draws the dashboard: every template whose spec does not say `"default": false`, in `order`. Today that is the last eval, exception rate by rule type, the rule scorecard, token-weighted outcome, token spend by project, the exception dot grid and the judge agreement matrix. The other four stay in the library and draw when named.
+
+The last eval block compares each rule type with the newest run from an earlier day. With no earlier run it compares with the rate 30 scored sessions back and says so.
 
 ## Adding a template
 

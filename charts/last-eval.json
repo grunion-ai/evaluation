@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "last-eval",
+  "title": "Last eval",
+  "question": "What did the last eval find, and what improved since the one before it?",
+  "form": "findings",
+  "builder": "last-eval",
+  "params": {
+    "metrics": [
+      "outcome",
+      "response",
+      "log",
+      "untyped"
+    ],
+    "track": "interactive"
+  },
+  "order": 1
+}

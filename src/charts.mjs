@@ -127,7 +127,50 @@ export function agreementMatrix(pairs, { label = 'label', verdict = 'verdict' })
   return { ...m, agree: m.passPass + m.failFail, n: known.length };
 }
 
+export function lastEval(rows, headers, { metrics, track, halfLife, min }) {
+  const runs = [...headers].sort((a, b) => String(a.startedAt).localeCompare(String(b.startedAt)));
+  const last = runs.at(-1);
+  if (!last) return { missing: 'no eval run in history yet' };
+  const day = (h) => String(h.startedAt).slice(0, 10);
+  const prior = runs.findLast((h) => day(h) < day(last));
+  const rate = (mine) => ewSeries(mine, { num: (r) => r.exceptions, den: (r) => r.checked, halfLife, min });
+  const items = metrics.map((label) => {
+    const mine = scored(rows, label, track);
+    const points = rate(mine);
+    const now = points.at(-1)?.value ?? null;
+    const previous = prior ? rate(mine.filter((r) => String(r.at) < String(prior.startedAt))).at(-1)?.value ?? null : points.at(-1 - HALF_LIFE)?.value ?? null;
+    const change = now === null || previous === null ? null : round3(now - previous);
+    return { label, now, previous, change, direction: change === null ? 'unknown' : change < 0 ? 'improved' : change > 0 ? 'worse' : 'flat' };
+  });
+  return { date: day(last), runId: last.runId, basis: prior ? `eval of ${day(prior)}` : `${HALF_LIFE} scored sessions earlier`, items };
+}
+
+export const PROJECT_SLICES = 6;
+
+export function projectTokens(rows, { last = HALF_LIFE * 3, track }) {
+  const tokens = tokenMap(rows);
+  const mine = rows.filter((r) => r.metric === 'outcome' && r.checked !== undefined && tokens.has(r.case) && (!track || r.track === track)).sort((a, b) => String(a.at).localeCompare(String(b.at))).slice(-last);
+  if (!mine.length) return { missing: NO_TOKENS };
+  if (!mine.some((r) => r.dims?.project)) return { missing: 'no session carries a project; export dims.project with the rule rows' };
+  const by = new Map();
+  for (const r of mine) {
+    const label = r.dims?.project ?? 'unknown';
+    const s = by.get(label) ?? { label, tokens: 0, sessions: 0, reached: 0, exception: 0, unknown: 0 };
+    const spent = tokens.get(r.case);
+    s.tokens += spent;
+    s.sessions += 1;
+    s[!r.checked ? 'unknown' : r.exceptions ? 'exception' : 'reached'] += spent;
+    by.set(label, s);
+  }
+  const ranked = [...by.values()].sort((a, b) => b.tokens - a.tokens);
+  const rest = ranked.slice(PROJECT_SLICES);
+  const other = rest.reduce((a, s) => ({ label: 'other', tokens: a.tokens + s.tokens, sessions: a.sessions + s.sessions, reached: a.reached + s.reached, exception: a.exception + s.exception, unknown: a.unknown + s.unknown }), { label: 'other', tokens: 0, sessions: 0, reached: 0, exception: 0, unknown: 0 });
+  return { sessions: mine.length, total: sum(mine, (r) => tokens.get(r.case)), slices: [...ranked.slice(0, PROJECT_SLICES), ...(rest.length ? [other] : [])] };
+}
+
 export const BUILDERS = {
+  'last-eval': (ctx, p) => lastEval(ctx.rows, ctx.headers, p),
+  'project-tokens': (ctx, p) => projectTokens(ctx.rows, p),
   'token-weighted-outcome': (ctx, p) => tokenWeightedOutcome(ctx.rows, p),
   'weighted-lines': (ctx, p) => weightedLines(ctx.rows, p),
   'weekly-tokens': (ctx, p) => weeklyTokens(ctx.rows, p),
@@ -206,7 +249,35 @@ function agreement(m) {
   return `<table class="grid"><tr><th></th><th>Judge pass</th><th>Judge fail</th></tr><tr><th>Human pass</th><td class="agree">${m.passPass}</td><td class="split">${m.passFail}</td></tr><tr><th>Human fail</th><td class="split">${m.failPass}</td><td class="agree">${m.failFail}</td></tr></table><p class="legend"><span>Agreement ${m.agree} of ${m.n}</span></p>`;
 }
 
-export const FORMS = { line, 'stacked-bar': stackedBar, 'dot-grid': dotGrid, 'heat-grid': heatGrid, scorecard, tiles, 'case-grid': caseGrid, 'agreement-matrix': agreement };
+const points = (v) => `${Math.abs(Math.round(v * 1000) / 10)} points`;
+
+function findings({ date, runId, basis, items }) {
+  const line = (i) => {
+    const moved = i.direction === 'unknown' ? 'no earlier rate to compare' : i.direction === 'flat' ? `flat against ${pct(i.previous)}` : `${i.direction} ${points(i.change)} from ${pct(i.previous)}`;
+    return `<tr class="${i.direction}"><th>${esc(i.label)}</th><td class="num">${pct(i.now)}</td><td>${moved}</td></tr>`;
+  };
+  return `<p class="when"><strong>${esc(date)}</strong> run ${esc(runId)}, compared with ${esc(basis)}</p><table class="card">${items.map(line).join('')}</table><p class="legend"><span>exception rate per rule type; a lower rate is an improvement</span></p>`;
+}
+
+const RING = 2 * Math.PI;
+
+function doughnut({ slices, total, sessions }) {
+  let turn = 0;
+  const arc = (r, share, colour, width) => {
+    const c = RING * r;
+    const drawn = `<circle r="${r}" cx="90" cy="90" fill="none" stroke="${colour}" stroke-width="${width}" stroke-dasharray="${(share * c).toFixed(2)} ${(c - share * c).toFixed(2)}" stroke-dashoffset="${(-turn * c).toFixed(2)}" transform="rotate(-90 90 90)"/>`;
+    turn += share;
+    return drawn;
+  };
+  const outer = slices.map((s, i) => arc(70, s.tokens / total, `var(--p${(i % 7) + 1})`, 26)).join('');
+  turn = 0;
+  const inner = slices.flatMap((s) => [['reached', 'var(--s3)'], ['exception', 'var(--s2)'], ['unknown', 'var(--line)']].map(([k, colour]) => arc(48, s[k] / total, colour, 10))).join('');
+  const share = (v, of) => (of ? `${Math.round((v / of) * 100)}%` : '0%');
+  const rows = slices.map((s, i) => `<tr><th><i style="background:var(--p${(i % 7) + 1})"></i>${esc(s.label)}</th><td>${millions(s.tokens)}</td><td>${share(s.tokens, total)}</td><td>${share(s.reached, s.tokens)}</td><td>${share(s.exception, s.tokens)}</td><td>${share(s.unknown, s.tokens)}</td></tr>`).join('');
+  return `<div class="ring"><svg viewBox="0 0 180 180" width="180" height="180" role="img" aria-label="token spend by project">${outer}${inner}<text x="90" y="88" text-anchor="middle" class="big">${millions(total)}</text><text x="90" y="104" text-anchor="middle">${sessions} sessions</text></svg><table class="spend"><tr><th>Project</th><th>Tokens</th><th>Share</th><th>Reached</th><th>Exception</th><th>Unknown</th></tr>${rows}</table></div><p class="legend"><span><i style="background:var(--s3)"></i>Reached</span><span><i style="background:var(--s2)"></i>Exception</span><span><i style="background:var(--line)"></i>Unknown</span><span>inner ring splits each project's tokens by outcome</span></p>`;
+}
+
+export const FORMS = { findings, doughnut, line, 'stacked-bar': stackedBar, 'dot-grid': dotGrid, 'heat-grid': heatGrid, scorecard, tiles, 'case-grid': caseGrid, 'agreement-matrix': agreement };
 
 export function validateChart(spec) {
   const errs = [];
@@ -218,15 +289,15 @@ export function validateChart(spec) {
 }
 
 export const loadCharts = (root) =>
-  readdirSync(join(root, 'charts')).filter((f) => f.endsWith('.json')).sort().map((f) => JSON.parse(readFileSync(join(root, 'charts', f), 'utf8')));
+  readdirSync(join(root, 'charts')).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(readFileSync(join(root, 'charts', f), 'utf8'))).sort((a, b) => (a.order ?? 100) - (b.order ?? 100) || a.id.localeCompare(b.id));
 
 export function renderChart(spec, data) {
   const body = data.missing ? `<p class="empty">No data: ${esc(data.missing)}</p>` : FORMS[spec.form](data);
   return `<section id="${esc(spec.id)}"><h2>${esc(spec.title)}</h2><p class="question">${esc(spec.question)}</p>${body}</section>`;
 }
 
-const STYLE = `:root{--bg:#fafaf8;--panel:#fff;--ink:#0c1b33;--ink2:#52514e;--line:#e1e0d9;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#898781}
-@media (prefers-color-scheme: dark){:root{--bg:#0c1b33;--panel:#132444;--ink:#e0dcd4;--ink2:#b4b8c4;--line:#2a3a5c;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#898781}}
+const STYLE = `:root{--bg:#fafaf8;--panel:#fff;--ink:#0c1b33;--ink2:#52514e;--line:#e1e0d9;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#898781;--p1:#2a78d6;--p2:#6250d6;--p3:#e87ba4;--p4:#eda100;--p5:#52514e;--p6:#85b7eb;--p7:#b4b2a9}
+@media (prefers-color-scheme: dark){:root{--bg:#0c1b33;--panel:#132444;--ink:#e0dcd4;--ink2:#b4b8c4;--line:#2a3a5c;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#898781;--p1:#3987e5;--p2:#9085e9;--p3:#d55181;--p4:#c98500;--p5:#c3c2b7;--p6:#85b7eb;--p7:#5f5e5a}}
 body{margin:0;padding:32px 16px;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,sans-serif}
 main{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
 h1{grid-column:1/-1;font-size:24px;margin:0}
@@ -254,7 +325,15 @@ th{font-weight:500;text-align:left;font-size:12px;color:var(--ink2)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
 .tiles div{background:var(--bg);border-radius:8px;padding:10px 12px}
 .tiles span{display:block;font-size:12px;color:var(--ink2)}
-.tiles strong{font-size:24px;font-weight:500}`;
+.tiles strong{font-size:24px;font-weight:500}
+.when{margin:0 0 8px}
+.improved td:last-child{color:var(--s3)}.worse td:last-child{color:var(--s2)}
+.ring{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.big{font-size:18px;fill:var(--ink)}
+.spend{flex:1;min-width:260px;font-size:12px;font-variant-numeric:tabular-nums}
+.spend td{text-align:right}
+.spend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+section:first-of-type{grid-column:1/-1}`;
 
 export function renderPage(items, { title }) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${STYLE}</style></head><body><main><h1>${esc(title)}</h1>${items.map(({ spec, data }) => renderChart(spec, data)).join('')}</main></body></html>\n`;

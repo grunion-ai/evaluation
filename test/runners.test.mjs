@@ -22,6 +22,25 @@ test('replay scores each session once per metric', () => {
   ]);
 });
 
+const rules = {
+  name: 'harness-rules',
+  metrics: [
+    { name: 'response', kind: 'code', scorer: 'rule', field: 'response', direction: 'down', unit: 'rate', role: 'guard' },
+    { name: 'outcome', kind: 'code', scorer: 'rule', field: 'outcome', direction: 'down', unit: 'rate', role: 'target' },
+  ],
+};
+
+test('a rule metric scores exceptions over checked and keeps waivers, exempt, track and commit beside it', () => {
+  const session = { id: 's1', at: '2026-11-27T10:00:00Z', track: 'interactive', harness: 'abc123', harnessAt: '2026-11-27T09:00:00Z', response: { checked: 8, exempt: 1, waivers: 2, exceptions: 2 }, outcome: { checked: 0, exempt: 0, waivers: 1, exceptions: 0 } };
+  const rows = replay({ suite: rules, sessions: [session, { id: 's2', at: '2026-11-27T11:00:00Z', track: 'automated' }] });
+  const context = { at: '2026-11-27T10:00:00Z', track: 'interactive', harness: 'abc123', harnessAt: '2026-11-27T09:00:00Z' };
+  assert.deepEqual(rows.slice(0, 2), [
+    { case: 's1', metric: 'response', trial: 1, value: 0.25, status: 'ok', split: 'heldout', checked: 8, exempt: 1, waivers: 2, exceptions: 2, ...context },
+    { case: 's1', metric: 'outcome', trial: 1, value: null, status: 'unknown', split: 'heldout', checked: 0, exempt: 0, waivers: 1, exceptions: 0, ...context },
+  ]);
+  assert.deepEqual([rows[2].value, rows[2].status, rows[2].checked, rows[2].track, rows[2].harness], [null, 'unknown', 0, 'automated', null]);
+});
+
 test('a missing field is unknown, never zero', () => {
   const rows = replay({ suite, sessions: [{ id: 's2', completed: false }] });
   assert.equal(rows[0].value, 0);

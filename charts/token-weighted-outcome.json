@@ -5,5 +5,6 @@
   "question": "What share of tokens went to sessions that reached their goal?",
   "form": "line",
   "builder": "token-weighted-outcome",
-  "params": {}
+  "params": {},
+  "order": 4
 }

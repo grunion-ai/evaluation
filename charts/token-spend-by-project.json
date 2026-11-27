@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "token-spend-by-project",
+  "title": "Token spend by project",
+  "question": "Where did the tokens of the last sessions go, and did those sessions reach their goal?",
+  "form": "doughnut",
+  "builder": "project-tokens",
+  "params": {
+    "last": 90
+  },
+  "order": 5
+}

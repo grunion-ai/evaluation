@@ -261,13 +261,14 @@ const commands = {
 
   charts(ids) {
     const all = loadCharts(root);
-    if (flags.list) return print(all.map(({ id, title, form, question }) => ({ id, title, form, question })));
-    const picked = ids.length ? ids.map((id) => all.find((c) => c.id === id) ?? fail(`unknown chart ${id}`)) : all;
+    if (flags.list) return print(all.map(({ id, title, form, question, default: shown }) => ({ id, title, form, question, default: shown !== false })));
+    const picked = ids.length ? ids.map((id) => all.find((c) => c.id === id) ?? fail(`unknown chart ${id}`)) : all.filter((c) => c.default !== false);
     const results = (suite) => listRuns(flags.history, suite).map((h) => readRun(flags.history, suite, h.runId));
     const ruleRuns = results('harness-rules');
     const tokens = new Map(ruleRuns.flatMap((r) => r.results).filter((r) => r.metric === 'tokens' && r.status === 'ok').map((r) => [r.case, r]));
     const arm = (runId) => (flags.suite && runId ? readRun(flags.history, flags.suite, runId).results : null);
     const ctx = {
+      headers: ruleRuns.map((r) => r.header),
       rows: [...ruleRows(ruleRuns), ...tokens.values()],
       turnRows: ruleRows(results('harness-turns')),
       runs: { baseline: arm(flags.baseline), candidate: arm(flags.candidate) },

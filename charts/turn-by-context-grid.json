@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "turn-by-context-grid",
+  "title": "Turn position by context size",
+  "question": "Do replies break the response rule more late in a session or in a full context?",
+  "form": "heat-grid",
+  "builder": "turn-context-grid",
+  "params": {}
+}

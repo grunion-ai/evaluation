@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "token-weighted-outcome",
+  "title": "Token-weighted outcome",
+  "question": "What share of tokens went to sessions that reached their goal?",
+  "form": "line",
+  "builder": "token-weighted-outcome",
+  "params": {}
+}

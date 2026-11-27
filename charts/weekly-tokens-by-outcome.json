@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "weekly-tokens-by-outcome",
+  "title": "Weekly tokens by outcome",
+  "question": "How many tokens a week went to sessions that never reached their goal?",
+  "form": "stacked-bar",
+  "builder": "weekly-tokens",
+  "params": {}
+}

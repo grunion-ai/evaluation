@@ -12,6 +12,7 @@ import { replay } from './runners/replay.mjs';
 import { runTrial } from './runners/sandbox.mjs';
 import { validateCase, validateExperiment, validateSizes, validateSuite } from './schema.mjs';
 import { CHANGE_N, HALF_LIFE, MIN_WEIGHTED, ruleChange, ruleRows, ruleTrend } from './rules.mjs';
+import { BUILDERS, loadCharts, renderPage, validateChart } from './charts.mjs';
 import { caseMeans, noiseFloor } from './stats.mjs';
 import { agreement as pairAgreement, buildData, loadRounds, loadTaxonomy, openTask, pairPrompt, parsePick, pending, validateRound } from './visual.mjs';
 
@@ -39,6 +40,14 @@ const { values: flags, positionals } = parseArgs({
     since: { type: 'string' },
     n: { type: 'string', default: String(CHANGE_N) },
     at: { type: 'string' },
+    list: { type: 'boolean', default: false },
+    out: { type: 'string' },
+    suite: { type: 'string' },
+    baseline: { type: 'string' },
+    candidate: { type: 'string' },
+    pairs: { type: 'string' },
+    title: { type: 'string' },
+    param: { type: 'string', multiple: true },
   },
 });
 const [command, ...args] = positionals;
@@ -78,6 +87,7 @@ const commands = {
       ...loadSuites(root).flatMap((s) => [...validateSuite(s.suite), ...s.cases.flatMap((c) => validateCase(c.spec, s.suite))]),
       ...loadExperiments(root).flatMap(validateExperiment),
       ...validateSizes(sizes()),
+      ...loadCharts(root).flatMap(validateChart),
       ...loadRounds(root).flatMap((r) => validateRound(r, loadTaxonomy(root))),
     ];
     for (const e of errs) console.error(e);
@@ -247,6 +257,28 @@ const commands = {
     const halfLife = Number(flags['half-life']);
     const metrics = suite.metrics.filter((m) => m.scorer === 'rule').map((m) => m.name);
     print({ suite: suite.name, halfLife, min: Number(flags.min), runs: runs.length, trend: ruleTrend(ruleRows(runs), { metrics, halfLife, min: Number(flags.min), since: flags.since }) });
+  },
+
+  charts(ids) {
+    const all = loadCharts(root);
+    if (flags.list) return print(all.map(({ id, title, form, question }) => ({ id, title, form, question })));
+    const picked = ids.length ? ids.map((id) => all.find((c) => c.id === id) ?? fail(`unknown chart ${id}`)) : all;
+    const results = (suite) => listRuns(flags.history, suite).map((h) => readRun(flags.history, suite, h.runId));
+    const ruleRuns = results('harness-rules');
+    const tokens = new Map(ruleRuns.flatMap((r) => r.results).filter((r) => r.metric === 'tokens' && r.status === 'ok').map((r) => [r.case, r]));
+    const arm = (runId) => (flags.suite && runId ? readRun(flags.history, flags.suite, runId).results : null);
+    const ctx = {
+      rows: [...ruleRows(ruleRuns), ...tokens.values()],
+      turnRows: ruleRows(results('harness-turns')),
+      runs: { baseline: arm(flags.baseline), candidate: arm(flags.candidate) },
+      pairs: flags.pairs ? readJsonl(flags.pairs) : [],
+    };
+    const given = Object.fromEntries((flags.param ?? []).map((kv) => [kv.slice(0, kv.indexOf('=')), kv.slice(kv.indexOf('=') + 1)]));
+    const opts = { halfLife: Number(flags['half-life']), min: Number(flags.min) };
+    const page = renderPage(picked.map((spec) => ({ spec, data: BUILDERS[spec.builder](ctx, { ...opts, ...spec.params, ...given }) })), { title: flags.title ?? 'Eval charts' });
+    if (!flags.out) fail('pass --out <file.html>');
+    writeFileSync(flags.out, page);
+    print({ file: flags.out, charts: picked.map((c) => c.id) });
   },
 
   change([suiteName, sha]) {

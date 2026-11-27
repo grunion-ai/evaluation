@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "headline-tiles",
+  "title": "Headline tiles",
+  "question": "What share of sessions and turns kept each rule?",
+  "form": "tiles",
+  "builder": "headline-tiles",
+  "params": {
+    "metrics": [
+      "outcome",
+      "response",
+      "log"
+    ],
+    "track": "interactive"
+  }
+}

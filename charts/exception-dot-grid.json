@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "exception-dot-grid",
+  "title": "Exception dot grid",
+  "question": "How much of each rule type is real failure?",
+  "form": "dot-grid",
+  "builder": "type-split",
+  "params": {
+    "metrics": [
+      "response",
+      "outcome",
+      "log",
+      "untyped"
+    ]
+  }
+}

@@ -31,6 +31,17 @@ test('replay two periods, then compare gates on completion', () => {
   assert.deepEqual(run('runs', 'harness-sessions', '--history', dir).stdout.match(/"runId": "(\w+)"/g).length, 2);
 });
 
+test('the harness-rules suite replays rule rows into history', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'cli-rules-'));
+  const counts = (checked, exceptions) => ({ checked, exempt: 0, waivers: 0, exceptions });
+  writeFileSync(join(dir, 'rules.jsonl'), JSON.stringify({ id: 's1', at: '2026-11-27T10:00:00Z', track: 'interactive', harness: 'abc123', harnessAt: '2026-11-27T09:00:00Z', response: counts(4, 1), outcome: counts(1, 0), log: counts(1, 0), untyped: counts(0, 0) }));
+  const out = run('replay', 'harness-rules', join(dir, 'rules.jsonl'), '--history', dir, '--run-id', 'r1', '--arm', 'nightly');
+  assert.equal(out.status, 0, out.stderr);
+  const lines = readFileSync(join(dir, 'harness-rules', 'r1.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+  assert.equal(lines[0].suite, 'harness-rules');
+  assert.deepEqual(lines.slice(1).map((r) => [r.metric, r.value, r.exceptions, r.waivers, r.harness]), [['response', 0.25, 1, 0, 'abc123'], ['outcome', 0, 0, 0, 'abc123'], ['log', 0, 0, 0, 'abc123'], ['untyped', null, 0, 0, 'abc123']]);
+});
+
 test('an unknown command exits 2 with usage', () => {
   const out = run('nope');
   assert.equal(out.status, 2);

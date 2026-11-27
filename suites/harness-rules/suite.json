@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "harness-rules",
+  "kind": "regression",
+  "metrics": [
+    { "name": "response", "kind": "code", "scorer": "rule", "field": "response", "direction": "down", "unit": "rate", "role": "guard" },
+    { "name": "outcome", "kind": "code", "scorer": "rule", "field": "outcome", "direction": "down", "unit": "rate", "role": "target" },
+    { "name": "log", "kind": "code", "scorer": "rule", "field": "log", "direction": "down", "unit": "rate", "role": "guard" },
+    { "name": "untyped", "kind": "code", "scorer": "rule", "field": "untyped", "direction": "down", "unit": "rate", "role": "diagnostic" }
+  ]
+}

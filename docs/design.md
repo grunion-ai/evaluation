@@ -136,3 +136,13 @@ The run header adds `size`, `partial`, `tokens` (spent), `estimate` and `uncalib
 1. Write a binary rubric for one dimension in `judges/<judge>.md`.
 2. Add an entry to `judges/judges.json` on a model different from any model under test.
 3. Label 20 or more examples with `split` set to `test` in the labels file and run `node src/cli.mjs calibrate <judge>`.
+
+## Rule rows
+
+The `harness-rules` suite holds the harness rule eval. The harness counts; this repo keeps the history. `node src/cli.mjs replay harness-rules <rows.jsonl> --history <dir>` takes one line per session:
+
+```json
+{ "id": "<session id>", "at": "2026-11-27T10:00:00Z", "track": "interactive", "harness": "<commit sha>", "harnessAt": "2026-11-27T09:00:00Z", "response": { "checked": 8, "exempt": 1, "waivers": 2, "exceptions": 2 }, "outcome": { "checked": 1, "exempt": 0, "waivers": 0, "exceptions": 0 }, "log": { "checked": 1, "exempt": 0, "waivers": 0, "exceptions": 0 }, "untyped": { "checked": 3, "exempt": 0, "waivers": 0, "exceptions": 0 } }
+```
+
+A metric with `"scorer": "rule"` reads the object named by `field`. Its value is exceptions over checked, and a session with nothing checked is `unknown` with a null value. The result row keeps `checked`, `exempt`, `waivers` and `exceptions` as separate fields, so a waiver or an exempt unit never enters the rate, plus `at` (session start), `track` (`interactive` or `automated`), `harness` (the harness commit live when the session started) and `harnessAt` (that commit's time).
